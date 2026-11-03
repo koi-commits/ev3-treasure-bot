@@ -12,9 +12,12 @@ class DriveBase:
         return SIM_HOLDER.sim
 
     def settings(self, straight_speed=None, straight_acceleration=None, turn_rate=None, turn_acceleration=None):
-        if straight_speed is None:
+        # Real DriveBase.settings() supports partial keyword updates.
+        if all(v is None for v in (straight_speed, straight_acceleration, turn_rate, turn_acceleration)):
             return self._settings
-        self._settings = (straight_speed, straight_acceleration, turn_rate, turn_acceleration)
+        old = self._settings
+        self._settings = tuple(old[i] if v is None else v for i, v in
+                               enumerate((straight_speed, straight_acceleration, turn_rate, turn_acceleration)))
 
     def drive(self, speed, turn_rate):
         self._sim().cmd_drive(speed, turn_rate)

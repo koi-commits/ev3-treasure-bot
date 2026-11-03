@@ -3,7 +3,7 @@ test_motors.py — 阶段一：电机与几何验证（分 3 步，逐步放开�
 
     pbrun.cmd src\test_motors.py
 
-每步前等 RIGHT 键（5 秒没按就自动继续），方便电脑端无人值守跑完。
+每步必须按 RIGHT 才执行；不会超时自动驱动电机。
 安全：把小车**架空**（轮子离地）或放在地板中央开阔处再开始。
 
 步骤：
@@ -13,17 +13,15 @@ test_motors.py — 阶段一：电机与几何验证（分 3 步，逐步放开�
 """
 
 import config
-from common import battery_check, log, wait_button_or_timeout
+from common import battery_check, log, wait_for_button
 from hardware import drive, ev3, left, right
 
 from pybricks.tools import run_task, wait
 
-GATE_MS = 5000
-
 
 async def phase1():
     log(ev3, "--- 1 single wheel ---")
-    await wait_button_or_timeout(ev3, GATE_MS, prompt="RIGHT: spin L then R")
+    await wait_for_button(ev3, prompt="RIGHT: spin L then R")
 
     a0 = left.angle()
     left.run(config.TEST_WHEEL_SPEED)
@@ -42,32 +40,32 @@ async def phase1():
 
 async def phase2():
     log(ev3, "--- 2 straight ---")
-    await wait_button_or_timeout(ev3, GATE_MS, prompt="RIGHT: straight 200mm")
+    await wait_for_button(ev3, prompt="RIGHT: straight 200mm")
 
     drive.reset()
     drive.settings(config.TEST_STRAIGHT_SPEED, config.TEST_STRAIGHT_ACCEL)
-    drive.straight(config.TEST_DISTANCE_MM)
+    await drive.straight(config.TEST_DISTANCE_MM)
     await wait(500)
     log(ev3, "fwd -> distance", int(drive.distance()), "mm (target",
         config.TEST_DISTANCE_MM, ")")
 
-    drive.straight(-config.TEST_DISTANCE_MM)
+    await drive.straight(-config.TEST_DISTANCE_MM)
     await wait(500)
     log(ev3, "back -> distance", int(drive.distance()), "mm (target 0)")
 
 
 async def phase3():
     log(ev3, "--- 3 turn ---")
-    await wait_button_or_timeout(ev3, GATE_MS, prompt="RIGHT: turn 90 deg")
+    await wait_for_button(ev3, prompt="RIGHT: turn 90 deg")
 
     drive.reset()
-    drive.settings(config.TEST_TURN_RATE, config.TEST_TURN_ACCEL)
-    drive.turn(config.TEST_TURN_DEG)
+    drive.settings(turn_rate=config.TEST_TURN_RATE, turn_acceleration=config.TEST_TURN_ACCEL)
+    await drive.turn(config.TEST_TURN_DEG)
     await wait(500)
     log(ev3, "turn L -> angle", int(drive.angle()), "deg (target",
         config.TEST_TURN_DEG, ")")
 
-    drive.turn(-config.TEST_TURN_DEG)
+    await drive.turn(-config.TEST_TURN_DEG)
     await wait(500)
     log(ev3, "turn R -> angle", int(drive.angle()), "deg (target 0)")
 

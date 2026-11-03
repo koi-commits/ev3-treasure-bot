@@ -18,6 +18,13 @@ class Motor:
     def stalled(self):
         return SIM_HOLDER.sim.stalled
 
+    def run(self, speed):
+        # Single-wheel test: enough to cover API calls, not wheel physics.
+        self._test_speed = speed
+
+    def brake(self):
+        self._test_speed = 0
+
     def stop(self):
         SIM_HOLDER.sim.cmd_stop()
 

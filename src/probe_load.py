@@ -17,7 +17,7 @@ probe_load.py — 判断"推着物体"能否从电机负载里看出来（V 形�
 """
 
 import config
-from common import battery_check, log, wait_button_or_timeout
+from common import battery_check, log, wait_for_button
 from fsm import LoadMonitor
 from hardware import color, drive, ev3, left, right
 
@@ -83,11 +83,11 @@ async def main():
         log(ev3, "load() failed", repr(e))
         return
 
-    await wait_button_or_timeout(ev3, 60000, prompt="EMPTY: RIGHT")
+    await wait_for_button(ev3, prompt="EMPTY: RIGHT")
     e = await run_leg("EMPTY")
-    await wait_button_or_timeout(ev3, 60000, prompt="HOLD obj: RIGHT")
+    await wait_for_button(ev3, prompt="HOLD obj: RIGHT")
     h = await run_leg("HOLD")
-    await wait_button_or_timeout(ev3, 60000, prompt="obj 30cm: RIGHT")
+    await wait_for_button(ev3, prompt="obj 30cm: RIGHT")
     mon = LoadMonitor(config.LOAD_SKIP_N, config.LOAD_LEARN_N, config.LOAD_WINDOW,
                       config.LOAD_K, config.LOAD_ABS_MARGIN, config.LOAD_HOLD_N)
     await run_leg("ONLINE", mon)

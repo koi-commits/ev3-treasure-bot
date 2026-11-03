@@ -94,7 +94,9 @@ pbrun.cmd src\demo_edge.py                      rem 基线回归
 pbrun.cmd src\mission.py                        rem 完整任务（先按测试方案标定）
 ```
 
-摆放规则：**车身和光斑都在深色场地内**，朝向随机。RIGHT 开始（8 s 无操作自动开始），CENTER 急停。
+正常起点规则：**车身和光斑都在深色场地内**，朝向随机。B1 属于单独的白边起步异常恢复测试，不计入正常起点成功率。
+
+**运行 `mission.py`、`test_motors.py` 和 `probe_load.py` 必须按 RIGHT 才会启动相应电机动作，不会等待超时后自行启动。** CENTER 急停。
 
 ## 为什么用 .cmd 包装脚本
 

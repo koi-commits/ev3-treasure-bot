@@ -31,11 +31,11 @@ mission.py — 完整自主任务。逻辑全部【离线验证，待实机验�
 
 实机可观测的越界指标（SUMMARY 里）：max_white_run_mm = 光斑连续见白期间车走过的最大距离。
 
-按键：RIGHT 开始（超时自动开始），CENTER 随时急停（Pybricks 默认）。
+按键：RIGHT 确认后开始（不会超时自动开车），CENTER 随时急停（Pybricks 默认）。
 """
 
 import config
-from common import battery_check, log, wait_button_or_timeout
+from common import battery_check, log, wait_for_button
 from fsm import (CLEAR, CRUISE, ESCAPE, EdgeFollower, LoadMonitor, Odometry, axis_snap,
                  diagonal_choices, rotate_about, straight_run_heading, tap_verdict, wrap180)
 from hardware import color, drive, ev3, left, right
@@ -832,7 +832,7 @@ async def main():
         return
     print("sensing:", sense.describe())
 
-    await wait_button_or_timeout(ev3, config.START_TIMEOUT_MS, prompt="RIGHT to start")
+    await wait_for_button(ev3, prompt="RIGHT to start")
     ev3.light.on(Color.GREEN)
     ctx = Ctx(sense)
     drive.reset()

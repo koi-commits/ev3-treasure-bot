@@ -155,7 +155,7 @@ SIGNATURES = {}                 # [TBD]
 # "full"           : 找终点 -> 自标定 -> 随机反弹搜索 -> tap 确认 -> 推送 -> 交付
 MISSION_MODE = "edge_to_finish"
 MISSION_MAX_MS = 600000         # 整场兜底（full 模式需要数分钟）
-START_TIMEOUT_MS = 8000         # 等 RIGHT 键，超时自动开始（便于 pbrun 无人值守）
+# 启动由 mission.py 的 RIGHT 按键明确确认；pbrun.cmd 不会自动触发运动。
 
 EDGE_SIDE = -1                  # 白边在车左侧（与已验证 demo_edge 一致）
 
