@@ -1,119 +1,56 @@
+r"""
+test_color.py — 颜色传感器读数与黑白区分度检查。不驱动电机。
+
+    pbrun.cmd src\test_color.py
+
+流程：
+  1. 连续采样 10 秒（每 100 ms 一次），打印 reflection / ambient / rgb / color
+  2. 打印最小/最大/均值，判断黑白对比够不够
+  3. 期间请用手把小车从黑面慢慢推到白面，或直接改放在不同表面上
+
+正式的阈值标定用 calibrate.py（按键确认，采样更规范）。
 """
-test_color.py — 阶段一：颜色传感器黑白读数稳定性
-Pybricks v4.1.x, EV3. ColorSensor 的 reflection()/color()/hsv() 都是 awaitable。
 
-流程 Flow：
-  1. 标定 BLACK：把传感器放在黑色场地上（不动），RIGHT -> 采 30 个样
-  2. 标定 WHITE：放在白色边界上，RIGHT -> 采 30 个样
-  3. 打印统计（mean/min/max/std）、阈值、分离度，给出 PASS/FAIL
-  4. Live：持续打印 reflection、color()、hsv()、BLACK/WHITE 判定 + 滑动窗口噪声
-     手推小车慢慢跨过黑白边界，观察判定是否干净地切换。CENTER 结束。
+import config
+from hardware import color, ev3
 
-不移动电机。标定结果需要你手动抄进 config.py（本脚本不写存储）。
-"""
+from pybricks.tools import run_task, wait
 
-from umath import sqrt
-
-from pybricks.ev3devices import ColorSensor
-from pybricks.hubs import EV3Brick
-from pybricks.parameters import Color
-from pybricks.tools import StopWatch, run_task, wait
-
-import config as cfg
-from common import battery_check, log, wait_for_button, warn_unconfirmed
-
-# 验收门槛 Acceptance thresholds（阶段一用，后续可调）
-MIN_SEPARATION = 20     # white_min - black_max 至少 20 个百分点
-MAX_STD = 3.0           # 静止时标准差不超过 3%
-
-ev3 = EV3Brick()
-sensor = ColorSensor(cfg.COLOR_SENSOR_PORT)
-# 阶段一只关心黑/白；限定可选颜色能提高 color() 稳定性
-sensor.detectable_colors([Color.BLACK, Color.WHITE, Color.NONE])
-
-
-def stats(values):
-    n = len(values)
-    mean = sum(values) / n
-    var = sum((v - mean) ** 2 for v in values) / n
-    return mean, min(values), max(values), sqrt(var)
-
-
-async def sample(n):
-    vals = []
-    for _ in range(n):
-        vals.append(await sensor.reflection())
-        await wait(cfg.SAMPLE_PERIOD_MS)
-    return vals
-
-
-async def calibrate(label):
-    log(ev3, "Place on", label)
-    await wait_for_button(ev3)
-    vals = await sample(cfg.CAL_SAMPLES)
-    mean, lo, hi, std = stats(vals)
-    log(ev3, label, "m={:.1f}".format(mean))
-    log(ev3, " min={} max={}".format(lo, hi))
-    log(ev3, " std={:.2f}".format(std))
-    print(label, "raw:", vals)
-    return mean, lo, hi, std
-
-
-async def live(threshold):
-    log(ev3, "LIVE (CENTER=quit)")
-    window = []
-    watch = StopWatch()
-    last_print = 0
-    while True:
-        r = await sensor.reflection()
-        window.append(r)
-        if len(window) > cfg.STATS_WINDOW:
-            window.pop(0)
-
-        # 屏幕刷新慢，每 500 ms 汇总一次；终端每个样本都打印，方便导出
-        c = await sensor.color()
-        h = await sensor.hsv()
-        surface = "WHITE" if r > threshold else "BLACK"
-        print("t={} r={} color={} hsv=({},{},{}) -> {}".format(
-            watch.time(), r, c, h.h, h.s, h.v, surface))
-
-        if watch.time() - last_print >= 500 and len(window) >= 2:
-            _, lo, hi, std = stats(window)
-            ev3.screen.clear()
-            ev3.screen.print("r =", r)
-            ev3.screen.print(surface)
-            ev3.screen.print("color", c)
-            ev3.screen.print("win {}-{}".format(lo, hi))
-            ev3.screen.print("std {:.2f}".format(std))
-            ev3.light.on(Color.GREEN if surface == "WHITE" else Color.RED)
-            last_print = watch.time()
-
-        await wait(cfg.SAMPLE_PERIOD_MS)
+DURATION_MS = 10000
+PERIOD_MS = 100
 
 
 async def main():
     ev3.screen.clear()
-    battery_check(ev3, cfg.LOW_BATTERY_MV)
-    warn_unconfirmed(ev3, cfg)
+    print("test_color: sampling {} ms, move robot over black/white".format(DURATION_MS))
 
-    b_mean, b_lo, b_hi, b_std = await calibrate("BLACK")
-    w_mean, w_lo, w_hi, w_std = await calibrate("WHITE")
+    vals = []
+    t = 0
+    while t < DURATION_MS:
+        r = await color.reflection()
+        amb = await color.ambient()
+        rgb = await color.rgb()
+        c = await color.color()
+        vals.append(r)
+        print("{:5d}  refl={:5.1f} amb={} rgb={} color={}".format(t, r, amb, rgb, c))
+        await wait(PERIOD_MS)
+        t += PERIOD_MS
 
-    threshold = (b_mean + w_mean) / 2
-    separation = w_lo - b_hi
-    ok = separation >= MIN_SEPARATION and b_std <= MAX_STD and w_std <= MAX_STD
+    lo = min(vals)
+    hi = max(vals)
+    avg = sum(vals) / len(vals)
+    print("--- stats ---")
+    print("min={:.1f} max={:.1f} avg={:.1f} span={:.1f}".format(lo, hi, avg, hi - lo))
 
-    ev3.screen.clear()
-    log(ev3, "thr={:.1f}".format(threshold))
-    log(ev3, "sep={}".format(separation))
-    log(ev3, "PASS" if ok else "FAIL")
-    print("Copy into config.py: BLACK_REFLECTION = {:.0f}, WHITE_REFLECTION = {:.0f}"
-          .format(b_mean, w_mean))
-    if not ok:
-        print("Hints: adjust sensor height (try 5-10 mm), shield ambient light, check port.")
+    if hi - lo < 10:
+        print("WARN: span < 10 -> 传感器可能没有贴近表面，或表面太单一")
+    elif hi - lo > 40:
+        print("GOOD: 黑白对比明显，可以跑 calibrate.py 记录阈值")
+    else:
+        print("OK: 有一定对比，建议再测一次更白/更黑的表面")
 
-    await wait_for_button(ev3, prompt="RIGHT = live")
-    await live(threshold)
+    ev3.speaker.beep(800, 200)
+    print("done")
 
 
 run_task(main())

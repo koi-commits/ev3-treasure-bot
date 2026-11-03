@@ -1,7 +1,7 @@
-"""
+r"""
 common.py — 测试脚本共用的小工具（只依赖 pybricks 官方模块）
 
-Button 约定 (all test scripts):
+Button 约定 (all scripts):
   RIGHT  = 下一步 / confirm
   CENTER = 紧急停止 (Pybricks 默认 stop button，不要占用)
 """
@@ -25,6 +25,30 @@ async def wait_for_button(ev3, button=Button.RIGHT, prompt="RIGHT = next"):
     while button in ev3.buttons.pressed():
         await wait(20)
     ev3.light.on(Color.GREEN)
+
+
+async def wait_button_or_timeout(ev3, timeout_ms=5000,
+                                 button=Button.RIGHT, prompt=None):
+    """等按键；超时自动继续。返回 True 表示是按键触发。
+
+    这样脚本既能人工操作，也能从电脑端无人值守地跑完。
+    """
+    if prompt:
+        log(ev3, prompt)
+    ev3.light.on(Color.ORANGE)
+    t = 0
+    pressed = False
+    while t < timeout_ms:
+        if button in ev3.buttons.pressed():
+            pressed = True
+            break
+        await wait(25)
+        t += 25
+    if pressed:
+        while button in ev3.buttons.pressed():
+            await wait(25)
+    ev3.light.on(Color.GREEN)
+    return pressed
 
 
 def battery_check(ev3, low_mv):

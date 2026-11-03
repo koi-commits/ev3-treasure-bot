@@ -2,85 +2,113 @@
 
 LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks v4.1.x MicroPython。
 
-**当前阶段：Phase 1 — 基础硬件验证**（不含搜索/寻宝/返航算法）
+**当前阶段：Phase 2 — 自动寻边 + 沿边巡线已实机跑通**（色标识别与推送运输尚未完成）
+
+> 详细工作日志见 [`docs/session-2026-11-03.md`](docs/session-2026-11-03.md)。
+
+## 已实机验证的功能
+
+| 功能 | 脚本 | 状态 |
+|---|---|---|
+| 设备识别、端口探测 | `src/check_env.py` / `src/scan_ports.py` / `src/diag.py` | ✅ |
+| 左右电机归属与方向 | `src/motor_id.py` / `src/test_motors.py` | ✅ A=左, D=右, 均 CLOCKWISE |
+| 黑白反射率标定 | `src/calibrate.py` | ✅ BLACK 1.0 / WHITE 11.2 |
+| 真实场地反射率复核 | `src/probe_live.py` | ✅ low20 0.7 / high20 11.5 |
+| **自动寻边 + 沿边巡线** | **`src/demo_edge.py`** | ✅ 用户目视确认轨迹正确 |
+| 终点色标识别 | `src/color_probe.py` | ❌ 传感器未能区分颜色，待处理 |
+| 探索状态机 | `src/mission.py` | ⚠️ 仍是旧版逻辑，待接入三状态机 |
 
 ## Directory
 
 ```
 ev3-treasure-bot/
 ├── README.md
+├── pb.cmd                    # 单条 pb 命令包装（已处理沙箱环境变量）
+├── pbrun.cmd                 # 一条命令内完成 start→connect→run→stop
 ├── docs/
-│   └── calibration.md     # 实物参数记录表（手填）
-└── src/                   # 全部在 EV3 上运行
-    ├── config.py          # 端口/方向/轮径/轮距/速度/阈值，唯一参数来源
-    ├── common.py          # log、按键等待、电池检查
-    ├── check_env.py       # Step 0：固件信息 + 端口扫描（只读）
-    ├── test_motors.py     # Step 1：电机方向与基础运动
-    └── test_color.py      # Step 2：黑白反射光标定与实时读数
+│   ├── calibration.md        # 实物参数记录表
+│   └── session-2026-11-03.md # 本次会话完整工作日志
+└── src/
+    ├── config.py             # 端口/方向/标定/速度/阈值，唯一参数来源
+    ├── hardware.py           # 唯一设备构造点（Pybricks 4.x 要求模块顶层构造）
+    ├── common.py             # log / 按键等待 / 电池检查
+    ├── edge.py               # 边界检测 + 三状态机沿边巡线
+    ├── demo_edge.py          # ★ 自动寻边 + 沿边巡线（最小可跑版本）
+    ├── mission.py            # 自主寻宝状态机（旧版，待重构）
+    ├── check_env.py          # 环境与端口自检
+    ├── test_motors.py        # 电机方向与基础运动
+    ├── test_color.py         # 颜色传感器连续读数
+    ├── calibrate.py          # 按键门控的黑白标定
+    ├── motor_id.py           # 逐个转电机，人工确认左右归属
+    ├── color_probe.py        # 色标识别能力评估
+    ├── scan_ports.py         # 全端口类型探测
+    ├── probe_live.py         # 手推过边界，记录真实场地反射率
+    ├── probe_dark.py         # 三段诊断（遮住/白纸/见光）
+    ├── probe_sensor.py / probe_lights.py / introspect.py / diag.py
 ```
 
-每个 `test_*.py` 都可独立运行，只依赖 `config.py` 和 `common.py`。Pybricks Code 运行时会自动把被 import 的同目录文件一起下载到 EV3，所以三个文件放在同一工作区即可。
+## 快速开始
 
-## Environment（Pybricks v4.x on EV3 的关键区别）
+```bat
+cd <PROJ>
 
-| | 旧版 EV3 MicroPython (v2.0) | 本项目 (v4.1.x) |
-|---|---|---|
-| 运行方式 | microSD 卡上的 ev3dev Linux | 直接刷入 EV3 的 Pybricks 固件 |
-| 编辑器 | VS Code + EV3 MicroPython 扩展 | 浏览器 Pybricks Code（Chrome/Edge） |
-| 首行 | `#!/usr/bin/env pybricks-micropython` | **不需要** |
-| 字体/图像 | `pybricks.media.ev3dev` | **不存在**，不要 import |
-| 异步 | 无 | `async/await` + `run_task()` |
+rem 确认连接（hub 名 Hamster，USB，固件 4.1.2）
+D:\python\Scripts\pb.exe scan
 
-**不要混用：** 网上很多 EV3 教程是 v2.0（ev3dev）写法，看到 shebang、`pybricks.media.ev3dev`、`ev3brick as brick` 就是旧版。
+rem 硬件自检
+pbrun.cmd src\check_env.py
 
-### Step A — 确认 EV3 上现在是什么系统（只看，不改）
+rem 自动寻边 + 沿边巡线
+pbrun.cmd src\demo_edge.py
+```
 
-1. 开机看屏幕：
-   - 顶部显示 Pybricks 界面/hub 名称 → 已是 Pybricks 固件，**直接跳到 Step B**
-   - LEGO 原厂菜单 → 原厂固件
-   - 插着 microSD 且出现 ev3dev 启动画面 → 旧版 v2.0 方案
-2. 若不是 Pybricks v4.x：**先问老师/实验室管理员**，确认允许后再由有权限的人刷机。本项目代码不会、也不应该自动刷固件。（刷机走 Pybricks Code 网页的 *Install Pybricks Firmware* 向导，USB 连接；需要恢复原厂固件时也有对应选项。）
+`demo_edge.py` 运行方式：把小车放在场地**内部**、车头朝向白边、距离 ≥ 20 cm，
+然后按 EV3 上的**右键（→）**启动。
 
-### Step B — 连接与运行
+## 为什么用 .cmd 包装脚本
 
-1. Chrome / Edge 打开 Pybricks Code（stable 版 `code.pybricks.com`；若学校设备用的是 beta 固件，则用 `beta.pybricks.com`，**网页版本要与固件版本匹配**）。
-2. 用 mini-USB 线连接 EV3 → 点工具栏的连接按钮 → 选择 EV3。
-   - Linux 需要 udev 规则；Windows/macOS 一般即插即用。
-   - 4.1 起也支持蓝牙，阶段一建议先用 USB，最稳定。
-3. 在 Pybricks Code 中新建 5 个文件，名称与 `src/` 完全一致，粘贴内容。
-4. 打开要运行的脚本 → 点 **Run**。终端输出在网页底部，同时显示在 EV3 屏幕。
-5. **CENTER 键 = 紧急停止**；RIGHT 键 = 下一步。
+`pb` 默认走 Windows 命名管道 + `%LOCALAPPDATA%\pybricks`、`%TEMP%\pybricks`，
+这两条路径在本机沙箱下会 `PermissionError [WinError 5]`。
+`pb.cmd` / `pbrun.cmd` 用 `pb_core/paths.py` 的官方覆盖点把运行时目录、状态目录、
+`USERPROFILE` 都指到项目内 `.pb\`，并用 `PB_ENDPOINT=tcp://127.0.0.1:47823` 绕开命名管道。
 
-### Step C — 记录版本
+另外脚本会在 `run` 之前先 `pb stop`（清掉上次中断残留的程序），
+且 `stop` / `run` 都显式带 `--hub Hamster`（否则会清空 hub 选择导致 `No hub selected`）。
 
-运行 `check_env.py`，把屏幕/终端里的固件版本、hub 名称抄到 `docs/calibration.md`。以后所有问题排查都以这个版本为准。
+## Pybricks 4.x 的硬约束
 
-## Run order & acceptance
+1. **设备对象必须在模块顶层构造**（`run_task()` 之前）。
+   在 `async` 里 `Motor(port)` 会抛
+   `RuntimeError('This can only be called before multitasking starts.')`。
+   → 所有设备统一在 `src/hardware.py` 构造。
+2. MicroPython 异常**没有 `__name__`**，用 `repr(e)`。
+3. `ColorSensor` 在 4.1.2 上**没有** `lights_on/lights_off`。
+4. `hsv().s/.v`、`ambient()` 是 float，`"{:5d}".format()` 会抛 `ValueError`。
+5. 带 `await` 的 API：`run_angle` / `straight` / `turn` / `wait` / `reflection` / `color` / `hsv` / `speaker.beep`。
+   非 awaitable：`run` / `stop` / `drive` / `angle` / `distance` / `buttons.pressed` / `screen.print`。
 
-| 步骤 | 脚本 | 操作 | 通过标准 |
-|---|---|---|---|
-| 0 | `check_env.py` | 直接运行 | 列出 2 个电机口 + 1 个颜色传感器口；电池 ≥ 7000 mV；改好 config 第 1 节 |
-| 1 | `test_motors.py` P1 | **架空小车** | 左右轮各转 1 圈，都让车"向前滚"；`angle` 读数 ≈ 360 |
-| 2 | `test_motors.py` P2 | 放地面 | 前进 200 mm 后退回到起点（目测误差 < 2 cm）；先右转后左转方向正确，回到原朝向（< 10°） |
-| 3 | `test_motors.py` P3 | 放地面 | 低速直行 2 s 平稳无抖动，`angle` 读数接近 0 |
-| 4 | `test_color.py` | 黑→白标定 | 终端显示 `PASS`：分离度 ≥ 20，静止 std ≤ 3；Live 模式手推跨边界时 BLACK/WHITE 切换干净，无反复跳变 |
-| 5 | 重复 | 每个测试连跑 3 次 | 结果一致 → 阶段一完成 |
+## 沿边巡线算法
 
-Phase 1 fail 时 → 只改 `config.py` 里的 `*_DIRECTION`，不要在代码里加负号。
+`src/edge.py` 的 `follow_edge_bangbang()` 是三状态机：
 
-## Calibration rules
+| 状态 | 行为 |
+|---|---|
+| `CRUISE` | 60 mm/s 前进 + 朝白边偏 22 °/s，斜向逼近边界 |
+| `ESCAPE` | 见白立刻**原地**转 130 °/s，固定 350 ms（约 45°），转完仍在白区就再续（最多 2 次） |
+| `CLEAR` | 逃逸后盲走 400 ms，**忽略传感器**，切断抖振反馈回路 |
 
-- `config.py` 中所有 `[TBD]` 均为占位值，**未经测量**。
+净效果是沿边界走"锯齿"：不越界，又持续沿边前进。
+
+> 不要改回纯比例控制。`drive.drive(speed, steer)` 保持前进速度，
+> 等传感器读到白色时车头已经深入白区，会"扫到白边→有转向→照样冲出白边"。
+
+## 标定规则
+
+- `config.py` 中 `*_CONFIRMED` 为 `False` 的项仍未在实物上确认。
 - 实测后：改数值 → 把对应 `*_CONFIRMED` 设为 `True` → 抄进 `docs/calibration.md`。
-- 轮径/轮距修正（官方方法）：`straight(1000)` 走不够 → 轮径调小，走过头 → 调大；`turn(360)` 转不够 → 轮距调大，转过头 → 调小。先调轮径，再调轮距。打开 `test_motors.py` 的 `RUN_CALIBRATION = True` 运行 Phase 4。
-
-## Notes on async
-
-- 带 `await` 标记的 API（`run_angle`、`straight`、`turn`、`wait`、`reflection`、`color`、`hsv`、`speaker.beep` …）在 `async def` 里必须写 `await`。
-- 非 awaitable（`run`、`stop`、`drive`、`angle`、`distance`、`buttons.pressed`、`screen.print` …）**不要**加 `await`。
-- 程序入口统一：`run_task(main())`，不嵌套调用 `run_task`。
+- 几何修正：`straight(1000)` 走不够 → 轮径调小；`turn(360)` 转不够 → 轮距调大。先轮径后轮距。
 
 ## Docs
 
-- API：https://docs.pybricks.com/en/stable/ （v4.1.1）
-- EV3 设备：`ev3devices` / `hubs.EV3Brick` / `robotics.DriveBase` / `tools`
+- Pybricks API：https://docs.pybricks.com/en/stable/ （v4.1.1）
+- 相关模块：`ev3devices` / `hubs.EV3Brick` / `robotics.DriveBase` / `tools`

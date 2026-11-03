@@ -1,63 +1,69 @@
-"""
-check_env.py — Step 0：确认固件、电池、端口上接了什么
-只读检查：不驱动电机、不写存储、不改固件。
+r"""
+check_env.py — 阶段一：环境自检（不驱动电机，安全）。
 
-Expected：屏幕/终端列出 A–D 哪些口有电机，S1–S4 哪些口有颜色传感器。
-用结果去改 config.py 第 1 节，然后把 PORTS_CONFIRMED 设为 True。
+    pbrun.cmd src\check_env.py
+
+检查内容：
+  * 固件/连接状态、电池电压
+  * 端口表（A/D 电机，S1 颜色传感器）
+  * 颜色传感器当前读数
+  * config 里哪些参数还没在实物上确认
+  * 按 RIGHT 键做一次屏幕/按键/蜂鸣器自检
 """
 
-from pybricks.ev3devices import ColorSensor, Motor
-from pybricks.hubs import EV3Brick
-from pybricks.parameters import Port
+import config
+from common import battery_check, log, warn_unconfirmed
+from hardware import color, ev3, left, right
+
+from pybricks.parameters import Color, Port
 from pybricks.tools import run_task, wait
-
-ev3 = EV3Brick()
-
-MOTOR_PORTS = (Port.A, Port.B, Port.C, Port.D)
-SENSOR_PORTS = (Port.S1, Port.S2, Port.S3, Port.S4)
-
-
-def probe_motor(port):
-    try:
-        m = Motor(port, reset_angle=False)
-        m.close()          # 释放端口，避免影响后续脚本
-        return True
-    except OSError:
-        return False
-
-
-async def probe_color(port):
-    try:
-        s = ColorSensor(port)
-        r = await s.reflection()
-        return r
-    except OSError:
-        return None
 
 
 async def main():
     ev3.screen.clear()
+
+    log(ev3, "=== check_env ===")
+
+    mv = battery_check(ev3, config.LOW_BATTERY_MV)
+
     info = ev3.system.info()
-    print("System info:", info)
-    ev3.screen.print("Name:", info.get("name"))
-    ev3.screen.print("Batt:", ev3.battery.voltage(), "mV")
+    log(ev3, "hub:", info.get("name"))
+    log(ev3, "usb:", info.get("host_connected_usb"),
+        "ble:", info.get("host_connected_ble"))
 
-    print("--- Motor ports ---")
-    for p in MOTOR_PORTS:
-        ok = probe_motor(p)
-        line = "{} motor".format(p) if ok else "{} -".format(p)
-        print(line)
-        ev3.screen.print(line)
+    log(ev3, "--- ports ---")
+    log(ev3, "L:", config.LEFT_MOTOR_PORT, "R:", config.RIGHT_MOTOR_PORT,
+        "C:", config.COLOR_SENSOR_PORT)
 
-    print("--- Sensor ports (ColorSensor) ---")
-    for p in SENSOR_PORTS:
-        r = await probe_color(p)
-        line = "{} color r={}".format(p, r) if r is not None else "{} -".format(p)
-        print(line)
-        ev3.screen.print(line)
+    log(ev3, "angle L/R:", left.angle(), right.angle())
 
-    print("Done. Update config.py section 1.")
-    await wait(10000)   # 留 10 秒看屏幕
+    r = await color.reflection()
+    c = await color.color()
+    amb = await color.ambient()
+    log(ev3, "color refl/amb:", r, amb)
+    log(ev3, "color class:", c)
+
+    if r < 3:
+        log(ev3, "WARN: no reflection -> sensor sees nothing")
+
+    warn_unconfirmed(ev3, config)
+
+    if mv < config.LOW_BATTERY_MV:
+        ev3.light.on(Color.RED)
+    else:
+        ev3.light.on(Color.GREEN)
+
+    log(ev3, "press RIGHT to beep")
+    # 最多等 3 秒，避免从电脑端无人值守运行时卡住
+    waited = 0
+    while waited < 3000:
+        if ev3.buttons.pressed():
+            break
+        await wait(50)
+        waited += 50
+
+    ev3.speaker.beep(600, 200)
+    log(ev3, "=== OK ===")
 
 
 run_task(main())
