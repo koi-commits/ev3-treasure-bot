@@ -1,114 +1,111 @@
 # EV3 Treasure Bot — 自主寻宝与定点运输
 
-LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks v4.1.x MicroPython。
+LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks 4.1.2 MicroPython。
 
-**当前阶段：Phase 2 — 自动寻边 + 沿边巡线已实机跑通**（色标识别与推送运输尚未完成）
+**当前阶段**
 
-> 详细工作日志见 [`docs/session-2026-11-03.md`](docs/session-2026-11-03.md)。
+- Phase 2：自动寻边与沿边巡线，已于 11-03 实机通过。
+- Phase 3：完整任务（色标识别、搜索、推送、交付），代码已完成，离线测试通过，**待 11-10 实机验证**。
 
-## 已实机验证的功能
+| 文档 | 内容 |
+|---|---|
+| [`docs/tuesday-test-plan.md`](docs/tuesday-test-plan.md) | ★ 下次实机的执行顺序、通过标准、决策分支 |
+| [`docs/offline-2026-11-03.md`](docs/offline-2026-11-03.md) | 离线开发：修了什么、测试结果、仍需实机回答的问题 |
+| [`docs/object-strategy.md`](docs/object-strategy.md) | 目标物搜索/推送/交付方案与 V 形推板设计要求 |
+| [`docs/session-2026-11-03.md`](docs/session-2026-11-03.md) | 11-03 实机日志（环境打通、三状态巡线的由来） |
+| [`docs/calibration.md`](docs/calibration.md) | 实物参数记录 + 待测量清单 |
+
+## 功能状态
 
 | 功能 | 脚本 | 状态 |
 |---|---|---|
-| 设备识别、端口探测 | `src/check_env.py` / `src/scan_ports.py` / `src/diag.py` | ✅ |
-| 左右电机归属与方向 | `src/motor_id.py` / `src/test_motors.py` | ✅ A=左, D=右, 均 CLOCKWISE |
-| 黑白反射率标定 | `src/calibrate.py` | ✅ BLACK 1.0 / WHITE 11.2 |
-| 真实场地反射率复核 | `src/probe_live.py` | ✅ low20 0.7 / high20 11.5 |
-| **自动寻边 + 沿边巡线** | **`src/demo_edge.py`** | ✅ 用户目视确认轨迹正确 |
-| 终点色标识别 | `src/color_probe.py` | ❌ 传感器未能区分颜色，待处理 |
-| 探索状态机 | `src/mission.py` | ⚠️ 仍是旧版逻辑，待接入三状态机 |
+| 设备识别、端口、电机方向 | `check_env.py` / `motor_id.py` / `test_motors.py` | ✅ 实机 |
+| 黑白反射率标定 | `calibrate.py` / `probe_live.py` | ✅ 实机（阈值 6.35） |
+| **寻边 + 三状态沿边巡线** | **`demo_edge.py`**（冻结基线） | ✅ 实机 |
+| 颜色模式切换诊断 | `probe_timing.py` | 🧪 待实机 |
+| 终点色标识别与标定 | `color_probe.py` / `calibrate_marker.py` | 🧪 待实机（离线通过） |
+| 完整任务：寻边→巡线→识别终点停车 | `mission.py`（`edge_to_finish`） | 🧪 待实机（仿真 20/20） |
+| 异常恢复：丢边/越界/堵转/出界/起步压白 | `mission.py` 监督层 | 🧪 待实机（仿真） |
+| 搜索 + 推送 + 交付 | `mission.py`（`full`） | 🧪 待实机，需 V 形推板 |
+| 推物体负载信号 | `probe_load.py` | 🧪 待实机 |
+| 轮径/轮距标定 | `calibrate_geometry.py` | 🧪 待实机 |
 
-## Directory
+## 目录
 
 ```
 ev3-treasure-bot/
-├── README.md
-├── pb.cmd                    # 单条 pb 命令包装（已处理沙箱环境变量）
-├── pbrun.cmd                 # 一条命令内完成 start→connect→run→stop
-├── docs/
-│   ├── calibration.md        # 实物参数记录表
-│   └── session-2026-11-03.md # 本次会话完整工作日志
-└── src/
-    ├── config.py             # 端口/方向/标定/速度/阈值，唯一参数来源
-    ├── hardware.py           # 唯一设备构造点（Pybricks 4.x 要求模块顶层构造）
-    ├── common.py             # log / 按键等待 / 电池检查
-    ├── edge.py               # 边界检测 + 三状态机沿边巡线
-    ├── demo_edge.py          # ★ 自动寻边 + 沿边巡线（最小可跑版本）
-    ├── mission.py            # 自主寻宝状态机（旧版，待重构）
-    ├── check_env.py          # 环境与端口自检
-    ├── test_motors.py        # 电机方向与基础运动
-    ├── test_color.py         # 颜色传感器连续读数
-    ├── calibrate.py          # 按键门控的黑白标定
-    ├── motor_id.py           # 逐个转电机，人工确认左右归属
-    ├── color_probe.py        # 色标识别能力评估
-    ├── scan_ports.py         # 全端口类型探测
-    ├── probe_live.py         # 手推过边界，记录真实场地反射率
-    ├── probe_dark.py         # 三段诊断（遮住/白纸/见光）
-    ├── probe_sensor.py / probe_lights.py / introspect.py / diag.py
+├── pb.cmd / pbrun.cmd        # pb CLI 沙箱包装（见下）
+├── docs/                     # 见上表
+├── logs/                     # 实机运行日志
+├── src/                      # 全部在 EV3 上运行
+│   ├── config.py             # 唯一参数来源（[TBD] = 未实测）
+│   ├── hardware.py           # 唯一设备构造点（Pybricks 4.x 必须模块顶层构造）
+│   ├── fsm.py                # 纯逻辑：三状态巡线机、色标分类、负载监测、里程计
+│   ├── sensing.py            # 传感模式 reflection / rgb / dual -> 白边 + 色标
+│   ├── calib.py              # 纯逻辑：色标标定分析
+│   ├── edge.py               # 巡线封装（follow_edge_bangbang 调用 fsm.EdgeFollower）
+│   ├── mission.py            # ★ 完整任务状态机
+│   ├── demo_edge.py          # ★ 已验证基线（冻结）
+│   ├── calibrate_marker.py / probe_timing.py / color_probe.py / probe_load.py / calibrate_geometry.py
+│   ├── calibrate.py / probe_live.py / check_env.py / test_motors.py / motor_id.py ...
+│   └── common.py
+└── tests/                    # PC 离线测试（不上机）
+    ├── run_all.py            # python tests/run_all.py
+    ├── report_scenarios.py   # 仿真场景成功率表
+    ├── sim.py / harness.py   # 2D 场地仿真 + 原样运行 src 脚本
+    ├── mock/pybricks/        # Pybricks API 模拟
+    ├── reference_20261103.py # 11-03 实测版巡线状态机（对拍基准）
+    ├── test_fsm.py / test_calib.py / test_mission_sim.py
+    └── mpy_logic_check.py / mpy_sim_check.py   # 在真正的 MicroPython 下执行
 ```
+
+## 任务流程（`mission.py`）
+
+```
+start_check ──► seek_edge ──► follow（三状态机 + 每 tick 色标检测）──► 终点色标 ──► 停车
+   │ 光斑在白上:     │ 直行至白边；        │ 丢边 -> 重新 seek
+   │ 先倒车回地面    │ 超过对角线不见白    │ 越界(续转用完仍白) -> 倒车、重置状态机
+   │                │ = 在场外 -> 走回     │ 堵转 -> 倒车 + 转离边
+                                         ▼
+full 模式：记录终点位姿 ──► bounce 覆盖（V 形推板）──► 负载抬升 = 推到物体 ──► 里程计/沿边送到终点
+```
+
+`MISSION_MODE` 可选 `edge_to_finish` / `survey` / `full`。`SENSE_MODE` 可选 `reflection`（基线，无色标）/ `rgb` / `dual`。
 
 ## 快速开始
 
 ```bat
 cd <PROJ>
-
-rem 确认连接（hub 名 Hamster，USB，固件 4.1.2）
-D:\python\Scripts\pb.exe scan
-
-rem 硬件自检
-pbrun.cmd src\check_env.py
-
-rem 自动寻边 + 沿边巡线
-pbrun.cmd src\demo_edge.py
+D:\python\python.exe tests\run_all.py          rem 离线自检，期望 OK
+pbrun.cmd src\demo_edge.py                      rem 基线回归
+pbrun.cmd src\mission.py                        rem 完整任务（先按测试方案标定）
 ```
 
-`demo_edge.py` 运行方式：把小车放在场地**内部**、车头朝向白边、距离 ≥ 20 cm，
-然后按 EV3 上的**右键（→）**启动。
+摆放规则：**车身和光斑都在深色场地内**，朝向随机。RIGHT 开始（8 s 无操作自动开始），CENTER 急停。
 
 ## 为什么用 .cmd 包装脚本
 
-`pb` 默认走 Windows 命名管道 + `%LOCALAPPDATA%\pybricks`、`%TEMP%\pybricks`，
-这两条路径在本机沙箱下会 `PermissionError [WinError 5]`。
-`pb.cmd` / `pbrun.cmd` 用 `pb_core/paths.py` 的官方覆盖点把运行时目录、状态目录、
-`USERPROFILE` 都指到项目内 `.pb\`，并用 `PB_ENDPOINT=tcp://127.0.0.1:47823` 绕开命名管道。
+`pb` 默认走 Windows 命名管道，并使用 `%LOCALAPPDATA%\pybricks`、`%TEMP%\pybricks`。这两条路径在本机沙箱下都会报 `PermissionError [WinError 5]`。
 
-另外脚本会在 `run` 之前先 `pb stop`（清掉上次中断残留的程序），
-且 `stop` / `run` 都显式带 `--hub Hamster`（否则会清空 hub 选择导致 `No hub selected`）。
+`pb.cmd` / `pbrun.cmd` 利用 `pb_core/paths.py` 的官方覆盖点，把运行时目录、状态目录和 `USERPROFILE` 都指到项目内的 `.pb\`，并设置 `PB_ENDPOINT=tcp://127.0.0.1:47823` 绕开命名管道。
 
-## Pybricks 4.x 的硬约束
+`run` 之前会先执行 `pb stop --hub Hamster`，清掉上次中断后残留在 hub 上的程序。
 
-1. **设备对象必须在模块顶层构造**（`run_task()` 之前）。
-   在 `async` 里 `Motor(port)` 会抛
-   `RuntimeError('This can only be called before multitasking starts.')`。
-   → 所有设备统一在 `src/hardware.py` 构造。
-2. MicroPython 异常**没有 `__name__`**，用 `repr(e)`。
-3. `ColorSensor` 在 4.1.2 上**没有** `lights_on/lights_off`。
-4. `hsv().s/.v`、`ambient()` 是 float，`"{:5d}".format()` 会抛 `ValueError`。
-5. 带 `await` 的 API：`run_angle` / `straight` / `turn` / `wait` / `reflection` / `color` / `hsv` / `speaker.beep`。
-   非 awaitable：`run` / `stop` / `drive` / `angle` / `distance` / `buttons.pressed` / `screen.print`。
+## Pybricks 4.x 硬约束（实机踩过）
 
-## 沿边巡线算法
+1. 设备对象必须在**模块顶层**构造（`run_task()` 之前），统一放在 `hardware.py`。
+2. MicroPython 异常没有 `__name__`，用 `repr(e)`。
+3. `ColorSensor` 没有 `lights_on/lights_off`。
+4. `hsv().s/.v`、`ambient()` 是 float，不能用 `{:d}` 格式化。
+5. 带 `await` 的 API（`straight`/`turn`/`wait`/`reflection`/`rgb`/`beep`…）在 async 里**必须 await**。不 await 的话，紧接着的下一条驱动命令会立刻覆盖它。若需要"启动后轮询"，用 `drive.straight(mm, wait=False)` 加 `drive.done()`。
+6. **同一循环里不要轮流读不同的颜色模式**（reflection/rgb/color/hsv），见 `probe_timing.py`。
 
-`src/edge.py` 的 `follow_edge_bangbang()` 是三状态机：
+## 不要做的事
 
-| 状态 | 行为 |
-|---|---|
-| `CRUISE` | 60 mm/s 前进 + 朝白边偏 22 °/s，斜向逼近边界 |
-| `ESCAPE` | 见白立刻**原地**转 130 °/s，固定 350 ms（约 45°），转完仍在白区就再续（最多 2 次） |
-| `CLEAR` | 逃逸后盲走 400 ms，**忽略传感器**，切断抖振反馈回路 |
-
-净效果是沿边界走"锯齿"：不越界，又持续沿边前进。
-
-> 不要改回纯比例控制。`drive.drive(speed, steer)` 保持前进速度，
-> 等传感器读到白色时车头已经深入白区，会"扫到白边→有转向→照样冲出白边"。
-
-## 标定规则
-
-- `config.py` 中 `*_CONFIRMED` 为 `False` 的项仍未在实物上确认。
-- 实测后：改数值 → 把对应 `*_CONFIRMED` 设为 `True` → 抄进 `docs/calibration.md`。
-- 几何修正：`straight(1000)` 走不够 → 轮径调小；`turn(360)` 转不够 → 轮距调大。先轮径后轮距。
+- 不要把巡线改回纯比例控制。实测会"扫到白边→有转向→照样冲出白边"。
+- 不要修改 `demo_edge.py` 的行为。它是硬件状态的回归基准。
+- 未经实测，不要把 `[TBD]` 参数当成测量值，也不要把仿真结果当作实机通过。
 
 ## Docs
 
-- Pybricks API：https://docs.pybricks.com/en/stable/ （v4.1.1）
-- 相关模块：`ev3devices` / `hubs.EV3Brick` / `robotics.DriveBase` / `tools`
+- Pybricks API：https://docs.pybricks.com/en/stable/ （v4.1.x）

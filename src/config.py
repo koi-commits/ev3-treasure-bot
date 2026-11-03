@@ -113,12 +113,90 @@ EDGE_CONFIRM_SAMPLES = 2        # 连续几个样本超过阈值才认定为边�
 # ============================================================
 # 8. Mission  —— 阶段三 自主寻宝
 # ============================================================
-EXPLORE_SPEED = 130             # mm/s 探索速度
-EXPLORE_TURN_MS = 900           # 撞边后随机转向的大致时长
-SEARCH_SPIN_DEG = 45            # 探索中周期性扫视角度
-TARGET_COLOR_REFLECTION_MAX = 40   # 目标物近处反射率上限（待标定）
-TARGET_COLOR = None             # [TBD] 目标物颜色（Color.*，实机标定后填）
-FINISH_COLOR = None             # [TBD] 终点色标（Color.*，实机标定后填）
+# 旧版 mission 参数（2026-11-03 晚（离线开发）起 mission.py 不再使用，保留供参考）
+EXPLORE_SPEED = 130
+EXPLORE_TURN_MS = 900
+SEARCH_SPIN_DEG = 45
+
+# ============================================================
+# 9. 传感模式与色标  —— 2026-11-03 晚新增，全部【待实机验证】
+#    流程：probe_timing.py -> color_probe.py -> calibrate_marker.py -> 改这里
+# ============================================================
+# "reflection" = 已验证基线（只判白边，无色标）
+# "rgb"        = 单模式 RGB：白边 + 色标（需 SIGNATURES 与 RGB_EDGE_BRIGHT）
+# "dual"       = reflection 判边 + rgb 判色标（每 tick 切两次模式，慎用）
+SENSE_MODE = "reflection"
+
+RGB_EDGE_BRIGHT = None          # [TBD] rgb 模式下"亮度 > 此值且未识别"视为白边
+MARKER_CONFIRM = 3              # 色标须连续 3 个样本（150 ms）同类才确认
+FINISH_LABEL = "finish"         # SIGNATURES 中终点色标的名字
+
+# calibrate_marker.py 会打印一段可直接粘贴的 SIGNATURES。
+# 特征顺序：(r, g, b, bright, cr, cg)；tol 为 None 的维度不检查。
+SIGNATURES = {}                 # [TBD]
+
+# ============================================================
+# 10. 自主任务（mission.py）—— 全部【待实机验证】
+# ============================================================
+# "edge_to_finish" : 寻边 -> 沿边巡线 -> 遇终点色标停车     （下周二主测）
+# "survey"         : 寻边 -> 沿边巡线一段时间，只记录色标与遥测，不停车
+# "full"           : 找终点 -> 覆盖扫场(V 形推板) -> 负载判定推到物体 -> 送到终点
+MISSION_MODE = "edge_to_finish"
+MISSION_MAX_MS = 600000         # 整场兜底（full 模式需要数分钟）
+START_TIMEOUT_MS = 8000         # 等 RIGHT 键，超时自动开始（便于 pbrun 无人值守）
+
+EDGE_SIDE = -1                  # 白边在车左侧（与已验证 demo_edge 一致）
+
+# 寻边（随机起点/朝向）
+SEEK_SPEED = 90                 # mm/s，与 demo_edge 找边速度一致
+SEEK_ATTEMPTS = 6
+SEEK_BACKOFF_MM = 30            # 找到边后后退量（demo_edge 的未 await 后退实际更短）
+START_BACK_MAX_MM = 200         # 起步光斑就在白边上：最多倒车这么远找回地面
+
+# 巡线监督 / 异常恢复
+FOLLOW_MAX_MS = 120000          # 沿边找终点的上限（应 > 绕场一圈时间，[TBD]）
+LOST_EDGE_MS = 6000             # CRUISE 中这么久没见白 -> 认为丢边，重新直行寻边
+OVERRUN_BACK_MM = 60            # 续转用完仍在白区 -> 先倒车这么多
+OVERRUN_LIMIT = 4               # 连续越界恢复次数上限，超过则中止
+STALL_MS = 600                  # drive.stalled() 持续这么久 -> 撞到东西，后退转开
+STALL_BACK_MM = 80
+STALL_TURN_DEG = 60
+
+# 出界判定：凸（矩形）场地内，任何不见白的直线段都不可能长于对角线。
+# 直行超过 ARENA_DIAG_MM 仍未见白 -> 判定已在场外，朝最近见白位置返回并穿过白带。
+ARENA_DIAG_MM = 1600            # [TBD] 实测场地内部对角线 × 1.1（偏大只会恢复变慢，偏小会误判）
+RETURN_IN_MM = 150              # 穿过白带回到场内后再前进这么多
+
+# 到达终点
+FINISH_PUSH_MM = 20             # [TBD] 确认色标后继续前推；取决于推板顶点相对光斑的前伸量
+FINISH_BACK_MM = 100            # 送达后倒车离开物体
+
+# 覆盖扫场（full 模式）
+# "bounce"：随机反弹（直行到边 -> 退 -> 随机转 100–170°），不依赖几何标定  ← 默认
+# "lanes" ：往返扫描线，垂直于终点所在边；需要 GEOMETRY_CONFIRMED 后再用
+SWEEP_PATTERN = "bounce"
+BOUNCE_MAX_LEGS = 60
+LANE_WIDTH_MM = 120             # [TBD] ≈ V 形推板开口宽度的 0.8
+SWEEP_SPEED = 100
+SWEEP_END_BACK_MM = 90          # [TBD] 扫描线到边后原地转之前的倒车量，须 ≥ 光斑前伸距离 + 20
+SWEEP_MAX_LANES = 40             # 含撞侧边后折返重扫的线数
+
+# 推到物体判定（负载）
+CAPTURE_MODE = "load"           # "load" 或 "off"（off = 只扫场不判定）
+LOAD_SKIP_N = 6                 # 每段直行前 6 个样本是加速段，不学习
+LOAD_LEARN_N = 12               # 用 12 个样本学空载基线
+LOAD_WINDOW = 5
+LOAD_K = 4.0
+LOAD_ABS_MARGIN = 15.0          # [TBD] mNm，probe_load.py 实测后改
+LOAD_HOLD_N = 4
+
+# 交付
+DELIVERY_MODE = "odometry"      # "odometry"：按里程计走回记录的终点位置，失败再沿边找；
+                                # "edge"：直接直行到边再沿边找色标（不依赖几何标定）
+DELIVER_FOLLOW_MAX_MS = 120000
+
+# 几何（只用于仿真与文档；控制代码不依赖）
+SENSOR_OFFSET_MM = None         # [TBD] 颜色传感器光斑到两轮轴线中点的前向距离
 
 
 # ------------------------------------------------------------

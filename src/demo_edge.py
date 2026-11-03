@@ -1,6 +1,11 @@
 r"""
 demo_edge.py — 最小可跑：自动寻边 + 沿边巡线（带遥测）。
 
+★ 2026-11-03 实机验证的基线，**行为冻结，不要修改**（下次实验先跑它确认硬件状态没变）。
+  已知但刻意保留的瑕疵：找到边后的 `drive.straight(-80)` 未 await（只倒车约 200 ms），
+  找边失败分支的 `drive.turn(60)` 未 await（会被下一段的 drive.reset 打断）。
+  mission.py 中已全部修正。
+
     pbrun.cmd src\demo_edge.py
 
 行为：

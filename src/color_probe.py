@@ -1,58 +1,73 @@
 r"""
-color_probe.py — 识别色标用：不驱动电机，连续打印颜色读数。
+color_probe.py — 色标可见性快速检查（2026-11-03 晚重写：单模式读取）。不驱动电机。
 
     pbrun.cmd src\color_probe.py
 
-跑 20 秒，每 300 ms 一行：`hsv  rgb  color`。
-开始会响 3 声（3-2-1）。请依次把**红 / 绿 / 蓝 / 黄**的物体放到传感器正下方
-（贴地、挡住 LED 光斑），每种停 3 秒左右。最后会统计每种 Color 的出现次数，
-用来判断哪种颜色在这个光照条件下能被稳定区分。
+旧版每轮连调 hsv()/rgb()/color() 三种模式，读数可能是切换造成的旧值（见 probe_timing.py）。
+新版分两段，每段只用一种模式：
+  段 1（20 s）rgb() 单模式：依次把 地面 / 白边 / 终点色标 / 其他颜色 放到光斑正下方，每种约 4 s
+  段 2（10 s）color() 单模式：同样操作，看 Pybricks 内置颜色枚举是否可用（仅供参考）
+
+**色标要贴地放在比赛场地上，让小车开上去**（光斑高度与比赛时一致），不要拿在手里举到传感器下。
 """
 
-import config
 from hardware import color, ev3
 
-from pybricks.tools import run_task, wait
+from pybricks.tools import StopWatch, run_task, wait
 
-DURATION_MS = 20000
-PRINT_MS = 300
+PRINT_MS = 250
+
+
+async def rgb_phase(ms):
+    ev3.speaker.beep(1200, 200)
+    print("=== rgb() only ===")
+    sw = StopWatch()
+    nxt = 0
+    lo = [999, 999, 999]
+    hi = [-1, -1, -1]
+    while sw.time() < ms:
+        rgb = await color.rgb()
+        for i in range(3):
+            lo[i] = min(lo[i], rgb[i])
+            hi[i] = max(hi[i], rgb[i])
+        if sw.time() >= nxt:
+            s = rgb[0] + rgb[1] + rgb[2]
+            ch = "" if s <= 0 else "cr={:.0f} cg={:.0f}".format(100 * rgb[0] / s, 100 * rgb[1] / s)
+            print("{:5.1f}s rgb={} bright={:.1f} {}".format(sw.time() / 1000, rgb, s / 3, ch))
+            ev3.screen.clear()
+            ev3.screen.print(str(rgb))
+            nxt += PRINT_MS
+        await wait(20)
+    print("rgb range: r {}..{}  g {}..{}  b {}..{}".format(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
+
+
+async def color_phase(ms):
+    ev3.speaker.beep(800, 200)
+    print("=== color() only ===")
+    sw = StopWatch()
+    seen = {}
+    nxt = 0
+    while sw.time() < ms:
+        c = str(await color.color())
+        seen[c] = seen.get(c, 0) + 1
+        if sw.time() >= nxt:
+            print("{:5.1f}s color={}".format(sw.time() / 1000, c))
+            ev3.screen.clear()
+            ev3.screen.print(c)
+            nxt += PRINT_MS
+        await wait(20)
+    print("color counts:", seen)
 
 
 async def main():
     ev3.screen.clear()
-    print("=== color_probe: show RED, GREEN, BLUE, YELLOW under the sensor ===")
-    print("threshold", config.edge_threshold())
-
+    ev3.screen.print("color_probe")
     for n in (3, 2, 1):
-        ev3.screen.clear()
         ev3.screen.print(str(n))
-        ev3.speaker.beep(600, 120)
         await wait(1000)
-    ev3.speaker.beep(1200, 400)
-
-    seen = {}
-    t = 0
-    next_print = 0
-    while t < DURATION_MS:
-        hsv = await color.hsv()
-        rgb = await color.rgb()
-        c = await color.color()
-        key = str(c)
-        seen[key] = seen.get(key, 0) + 1
-        ev3.screen.clear()
-        ev3.screen.print(key)
-        ev3.screen.print("h{} s{} v{}".format(hsv.h, hsv.s, hsv.v))
-        if t >= next_print:
-            print("{:5.1f}s  hsv=({:3d},{:3d},{:3d})  rgb=({:3d},{:3d},{:3d})  color={}".format(
-                t / 1000.0, hsv.h, hsv.s, hsv.v, rgb[0], rgb[1], rgb[2], key))
-            next_print += PRINT_MS
-        await wait(100)
-        t += 100
-
-    print("--- color counts ---")
-    for k, v in seen.items():
-        print("  {} : {}".format(k, v))
-    ev3.speaker.beep(800, 300)
+    await rgb_phase(20000)
+    await color_phase(10000)
+    ev3.speaker.beep(500, 400)
     print("done")
 
 

@@ -29,6 +29,29 @@
 
 `GEOMETRY_CONFIRMED = False`。
 
+## 待测量（2026-11-10 实机前用尺子量，见 `docs/tuesday-test-plan.md` 第 0 步）
+
+| # | 项目 | config / 用途 | 实测值 | 备注 |
+|---|---|---|---|---|
+| M1 | 光斑中心 → 两轮轴线中点 前向距离 (mm) | `SENSOR_OFFSET_MM`；须 `SWEEP_END_BACK_MM ≥ M1+20` | | > 80 mm 需报告 |
+| M2 | 传感器离地高度 (mm) | `SENSOR_HEIGHT_MM` | | |
+| M3 | 白色边界宽度 (mm) | 越界余量 | | < 40 mm 需报告 |
+| M4 | 白边外侧表面 | 出界后读到什么 | | 深色/白色/悬空 |
+| M5 | 场地内部 长 × 宽，对角线 (mm) | `ARENA_DIAG_MM = 对角线 × 1.1` | | **必须改** |
+| M6 | 终点色标 颜色/尺寸/位置/材质 | 色标方案 | | |
+| M7 | 目标物 尺寸/重量/形状 | 推板、负载判定 | | |
+| M8 | V 形推板 开口宽 / 顶点相对光斑前伸 | `LANE_WIDTH_MM`、`FINISH_PUSH_MM` | | 前伸 ≤ 30 mm |
+
+## 色标 / 负载（实机标定后填）
+
+| 项目 | config | 值 | 日期 |
+|---|---|---|---|
+| 传感模式 | `SENSE_MODE` | reflection（未标定） | |
+| rgb 白边亮度阈值 | `RGB_EDGE_BRIGHT` | — | |
+| 色标签名 | `SIGNATURES` | — | `calibrate_marker.py` 输出原样粘贴 |
+| 巡线循环真实周期 (ms) | — | — | `probe_timing.py` E 段 |
+| 空载 / 推物体负载 (mNm) | `LOAD_ABS_MARGIN` | — | `probe_load.py` |
+
 ## Color（场地实测）
 
 | 表面 | mean | min | max | std | 光照条件 |

@@ -7,16 +7,18 @@ edge.py — 白色边界检测 + 沿边巡线。阶段二的核心算法，纯�
   * refl > threshold  => 看到白色（边界）
   * refl < threshold  => 看到深色（场地）
 
-三种用法：
+用法：
   1. read_reflection()            单次读数
   2. hit_edge(threshold)          连续 N 个样本都白 -> 认定到边界（防抖）
-  3. follow_edge(...)             沿边巡线：把传感器压在边界线上，用比例控制保持
+  3. follow_edge_bangbang(...)    ★ 已实机验证的三状态沿边巡线（逻辑在 fsm.EdgeFollower）
   4. avoid_edge(...)              撞边自保：后退 + 转向
+  5. follow_edge(...)             比例控制版本，实测冲出白边，仅留作对照
 
 所有函数都是 async，配合 run_task 使用。
 """
 
 import config
+from fsm import EdgeFollower
 from hardware import color, drive
 
 from pybricks.tools import wait
@@ -57,9 +59,9 @@ async def avoid_edge(threshold=None, back_mm=70, turn_deg=90):
     """发现白边后的自保动作：先退，再转开。返回转过的角度。"""
     drive.stop()
     await wait(150)
-    drive.straight(-abs(back_mm))
-    drive.turn(turn_deg)
-    await wait(100)
+    # 2026-11-03 晚修复：原代码未 await，turn 会立刻覆盖 straight，倒车根本不发生
+    await drive.straight(-abs(back_mm))
+    await drive.turn(turn_deg)
     return turn_deg
 
 
@@ -111,40 +113,6 @@ async def follow_edge(threshold=None, speed=None, gain=None, side=-1,
     return drive.distance()
 
 
-async def follow_edge_until_color(target, threshold=None, speed=None,
-                                  side=-1, max_ms=20000, confirm=3):
-    """边巡边找目标色。看到 target 颜色连续 confirm 次就停并返回 True。"""
-    if threshold is None:
-        threshold = config.edge_threshold()
-    if speed is None:
-        speed = config.DRIVE_SLOW
-
-    span = contrast_span()
-    drive.reset()
-    t = 0
-    hits = 0
-    while t < max_ms:
-        refl = await color.reflection()
-        c = await color.color()
-        if c == target:
-            hits += 1
-            if hits >= confirm:
-                drive.stop()
-                return True
-        else:
-            hits = 0
-
-        err = (refl - threshold) / span
-        steer = clamp(-side * config.KP_NORM * err * config.STEER_LIMIT,
-                      -config.STEER_LIMIT, config.STEER_LIMIT)
-        drive.drive(speed, steer)
-        await wait(config.SAMPLE_PERIOD_MS)
-        t += config.SAMPLE_PERIOD_MS
-
-    drive.stop()
-    return False
-
-
 async def follow_edge_bangbang(threshold=None, speed=None, side=-1, max_ms=8000,
                                approach_steer=None, turn_rate=None,
                                escape_ms=None, clear_ms=None, on_tick=None):
@@ -178,75 +146,20 @@ async def follow_edge_bangbang(threshold=None, speed=None, side=-1, max_ms=8000,
         clear_ms = config.EDGE_CLEAR_MS
 
     period = config.SAMPLE_PERIOD_MS
-    away = -side * turn_rate          # 离开白边的转向（原地）
-    toward = side * approach_steer    # 朝白边的偏转（前进中）
-
-    CRUISE, ESCAPE, CLEAR = 0, 1, 2
+    # 2026-11-03 晚：状态机逻辑移到 fsm.EdgeFollower（纯逻辑，可离线对拍）。
+    # tests/test_fsm.py 用 11-03 原实现逐 tick 对比，drive 命令序列完全一致。
+    f = EdgeFollower(side, speed, approach_steer, turn_rate, escape_ms, clear_ms)
 
     drive.reset()
     t = 0
-    state = CRUISE
-    until = 0
-    extensions = 0
-    twists = 0
-
     while t < max_ms:
         refl = await color.reflection()
-
-        if state == CRUISE:
-            if refl > threshold:
-                twists += 1
-                state = ESCAPE
-                until = t + escape_ms
-                extensions = 0
-                steer = away
-                drive.drive(0, away)
-            else:
-                steer = toward
-                drive.drive(speed, toward)
-
-        elif state == ESCAPE:
-            steer = away
-            drive.drive(0, away)
-            if t >= until:
-                if refl > threshold and extensions < 2:
-                    # 转完仍在白区（内转角），继续逃
-                    extensions += 1
-                    until = t + escape_ms
-                else:
-                    state = CLEAR
-                    until = t + clear_ms
-
-        else:  # CLEAR
-            steer = toward
-            drive.drive(speed, toward)
-            if t >= until:
-                state = CRUISE
-
+        sp, steer = f.step(t, refl > threshold)
+        drive.drive(sp, steer)
         if on_tick is not None:
             on_tick(t, refl, steer)
         await wait(period)
         t += period
 
     drive.stop()
-    return twists
-
-
-async def scan_color(target_color, spin_rate=60, full_turn_ms=6500):
-    """原地慢转一整圈，找目标颜色。返回是否找到。"""
-    drive.reset()
-    t = 0
-    hits = 0
-    while t < full_turn_ms:
-        if await color.color() == target_color:
-            hits += 1
-            if hits >= 3:
-                drive.stop()
-                return True
-        else:
-            hits = 0
-        drive.drive(0, spin_rate)
-        await wait(config.SAMPLE_PERIOD_MS)
-        t += config.SAMPLE_PERIOD_MS
-    drive.stop()
-    return False
+    return f.twists
