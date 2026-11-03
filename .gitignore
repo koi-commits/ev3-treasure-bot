@@ -1,0 +1,22 @@
+# Local Pybricks/DSH runtime
+.pb/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+# Test output and runtime logs
+logs/*
+!logs/README.txt
+!logs/.gitkeep
+*.log
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Generated archives
+*.zip
+*.bundle
