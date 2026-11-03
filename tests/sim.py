@@ -14,6 +14,11 @@ DriveBase 约定：turn_rate / angle 正 = 顺时针（右转）。
 import math
 import random
 
+
+
+def _hypot(a, b):                       # MicroPython 没有 math.hypot
+    return math.sqrt(a * a + b * b)
+
 try:
     _Random = random.Random
 except AttributeError:      # MicroPython：没有 Random 类，用模块级函数做一个够用的替身
@@ -90,20 +95,38 @@ class SimTimeout(Exception):
     pass
 
 
+# 车体几何（车体坐标：x 向前，y 向左，原点 = 两轮轴线中点）。全部是假设值，实机量出后改这里。
+GEOM = dict(
+    body_front=45.0, body_back=-80.0, body_half=62.0, wheel_y=57.0,
+    plow=True,
+    apex=70.0,          # V 形推板顶点（口袋最深处）—— 在光斑(60)前 10 mm
+    plow_depth=80.0,    # 顶点到臂尖的前向长度
+    plow_half=65.0,     # 臂尖半宽（开口 130 mm，夹角约 78°）
+    side_plates=True,   # 车身侧面延长板：封住"臂外侧 + 车头"形成的凹角（否则物体会卡在臂外侧被推着走）
+)
+
+
 class Sim:
     def __init__(self, W=1200, H=900, band=40, outside="floor",
                  start=(600, 450, 0.0), sensor_offset=60.0, spot_r=4.0,
                  noise=0.15, markers=(), objects=(), obstacles=(),
                  accel=750.0, turn_accel=750.0, odo_dist_scale=1.0, odo_turn_scale=1.0,
-                 read_cost_ms=1, buttons=(), seed=0, max_ms=400000):
+                 read_cost_ms=1, buttons=(), seed=0, max_ms=400000,
+                 geom=None, contact_mu=0.3, load_noise=2.5, coast_decel=900.0, brake_decel=2000.0,
+                 legacy_objects=False, sensor_lat=0.0):
         self.W, self.H, self.band = W, H, band
         self.outside = FLOOR if outside == "floor" else WHITE
         self.x, self.y, self.th = start
         self.sensor_offset = sensor_offset
+        self.sensor_lat = sensor_lat        # 光斑横向偏移（mm，正 = 车左侧）
         self.spot_r = spot_r
         self.noise = noise
         self.markers = list(markers)        # (x0, y0, x1, y1, surface)
-        self.objects = [dict(o) for o in objects]   # {"x","y","r","load","carried"}
+        # 物体：{"x","y","r","load"(推动时两电机合计负载 mNm), 可选 "immovable"}
+        self.objects = [dict(o) for o in objects]
+        for o in self.objects:
+            o.setdefault("out", False)
+            o.setdefault("pushed_ms", 0.0)
         self.obstacles = list(obstacles)    # (x0, y0, x1, y1)
         self.accel, self.turn_accel = accel, turn_accel
         self.ds, self.ts = odo_dist_scale, odo_turn_scale
@@ -129,6 +152,19 @@ class Sim:
         self.max_out = 0.0          # 传感器越出场地内部的最大距离（mm）
         self.max_out_center = 0.0   # 车体中心越出的最大距离
         self.reads = 0
+        g = dict(GEOM)
+        g.update(geom or {})
+        self.g = g
+        self.contact_mu = contact_mu
+        self.load_noise = load_noise
+        self.coast_decel, self.brake_decel = coast_decel, brake_decel
+        self.legacy_objects = legacy_objects
+        self.stop_mode = None
+        self.acc_v = 0.0
+        self.load_drift = [0.0, 0.0]
+        self.push_load = 0.0
+        self.wheel_max_out = 0.0    # 轮子触地点越过白边内沿的最大距离
+        self.object_out = False     # 有物体中心越过白边外沿（推出场地）
         SIM_HOLDER.sim = self
 
     # ---------------------------------------------------------- surface
@@ -145,8 +181,9 @@ class Sim:
         return self.outside
 
     def sensor_pos(self):
-        return (self.x + self.sensor_offset * math.cos(self.th),
-                self.y + self.sensor_offset * math.sin(self.th))
+        c, s = math.cos(self.th), math.sin(self.th)
+        return (self.x + self.sensor_offset * c - self.sensor_lat * s,
+                self.y + self.sensor_offset * s + self.sensor_lat * c)
 
     def _spot(self):
         sx, sy = self.sensor_pos()
@@ -180,24 +217,29 @@ class Sim:
     # ---------------------------------------------------------- commands
     def cmd_drive(self, v, w):
         self.man = None
+        self.stop_mode = None
         self.cmd_v, self.cmd_w = float(v), float(w)
 
-    def cmd_stop(self):
+    def cmd_stop(self, mode="coast"):
+        """Pybricks: stop()=滑行(coast)，brake()=被动制动，hold()=主动保持。都不是瞬间停。"""
         self.man = None
         self.cmd_v = self.cmd_w = 0.0
-        self.v = self.w = 0.0       # DriveBase.stop 为 coast；这里简化为立即停
+        self.stop_mode = mode
 
     def cmd_straight(self, mm, speed):
+        self.stop_mode = None
         self.man = {"kind": "d", "start": self.dist_acc, "target": mm, "speed": abs(speed)}
 
     def cmd_turn(self, deg, rate):
+        self.stop_mode = None
         self.man = {"kind": "a", "start": self.ang_acc, "target": deg, "speed": abs(rate)}
 
     def maneuver_done(self):
         return self.man is None
 
     def cmd_reset(self, d=0, a=0):
-        self.cmd_stop()
+        self.cmd_stop("hold")
+        self.v = self.w = 0.0
         self.dist_acc, self.ang_acc = d / self.ds, a / self.ts
 
     def odo_distance(self):
@@ -210,11 +252,13 @@ class Sim:
         return 0
 
     def motor_load(self, side):
-        base = 20.0 + abs(self.v) * 0.05
-        extra = sum(o["load"] for o in self.objects if o.get("carried")) / 2.0
+        """单个电机负载估计（mNm）：摩擦 + 速度项 + 加速度项 + 漂移 + 白噪声 + 推物体 + 堵转。"""
+        i = 0 if side == "L" else 1
+        base = 18.0 + abs(self.v) * 0.04 + abs(self.w) * 0.03 + abs(self.acc_v) * 0.03
+        extra = self.push_load / 2.0
         if self.stalled:
             extra += 150
-        return base + extra + self.rng.gauss(0, 2.0)
+        return base + extra + self.load_drift[i] + self.rng.gauss(0, self.load_noise)
 
     def buttons_pressed(self):
         """button_events: (t0, t1, Button) 或 (t0, t1, Button, (x, y, th))。
@@ -258,23 +302,27 @@ class Sim:
         for (x0, y0, x1, y1) in self.obstacles:
             if x0 <= fx <= x1 and y0 <= fy <= y1:
                 return True
-        for o in self.objects:
-            if o.get("carried") and o.get("immovable"):
-                return True
         return False
 
     def step(self, dt_ms):
         dt = dt_ms / 1000.0
         tv, tw = self._targets()
-        dv = self.accel * dt
+        if self.stop_mode is not None:
+            dec = {"coast": self.coast_decel, "brake": self.brake_decel}.get(self.stop_mode, self.accel)
+            dv = dec * dt
+            dw = dec * dt
+        else:
+            dv = self.accel * dt
+            dw = self.turn_accel * dt
+        v0 = self.v
         self.v += max(-dv, min(dv, tv - self.v))
-        dw = self.turn_accel * dt
         self.w += max(-dw, min(dw, tw - self.w))
+        self.acc_v = (self.v - v0) / dt
 
         nth = self.th - math.radians(self.w) * dt
         nx = self.x + self.v * dt * math.cos(nth)
         ny = self.y + self.v * dt * math.sin(nth)
-        if self.v > 0 and self._blocked(nx, ny, nth):
+        if self.v > 0 and (self._blocked(nx, ny, nth) or self._immovable_contact(nx, ny, nth)):
             self.block_ms += dt_ms
             nx, ny = self.x, self.y
             moved = 0.0
@@ -282,14 +330,25 @@ class Sim:
             self.block_ms = 0.0
             moved = self.v * dt
         self.stalled = self.block_ms > 200
+        ox, oy, oth = self.x, self.y, self.th
         self.x, self.y, self.th = nx, ny, nth
         self.dist_acc += moved
         self.ang_acc += self.w * dt
-        self._objects(moved)
+        if self.legacy_objects:
+            self._objects_legacy(moved)
+        else:
+            self._push_objects(ox, oy, oth, dt_ms)
+        for i in (0, 1):
+            self.load_drift[i] += -0.01 * self.load_drift[i] + self.rng.gauss(0, 0.3)
 
         sx, sy = self.sensor_pos()
         self.max_out = max(self.max_out, self._outside_dist(sx, sy))
         self.max_out_center = max(self.max_out_center, self._outside_dist(self.x, self.y))
+        c, s_ = math.cos(self.th), math.sin(self.th)
+        wy = self.g["wheel_y"]
+        for sgn in (-1, 1):
+            wx, wyy = self.x - sgn * wy * s_, self.y + sgn * wy * c
+            self.wheel_max_out = max(self.wheel_max_out, self._outside_dist(wx, wyy))
         self.t += dt_ms
         if self.t > self.max_ms:
             raise SimTimeout()
@@ -299,18 +358,129 @@ class Sim:
         dy = max(-py, 0, py - self.H)
         return max(dx, dy)
 
-    PLOW_D = 95.0       # 推板顶点到车体中心
-    PLOW_HALF = 70.0    # 推板开口半宽
+    # ---------------------------------------------------------- 物体：准静态接触推动
+    def segments_robot_frame(self):
+        g = self.g
+        segs = []
+        fr, bk, bh = g["body_front"], g["body_back"], g["body_half"]
+        segs += [((fr, -bh), (fr, bh)), ((bk, -bh), (bk, bh)), ((bk, bh), (fr, bh)), ((bk, -bh), (fr, -bh))]
+        if g["plow"]:
+            ax, dp, ph = g["apex"], g["plow_depth"], g["plow_half"]
+            segs += [((ax, 0.0), (ax + dp, ph)), ((ax, 0.0), (ax + dp, -ph)),
+                     ((fr, 0.0), (ax, 0.0))]      # 推板支架
+            if g.get("side_plates", True) and ph >= bh:
+                xs = ax + dp * bh / ph            # 臂到达车宽处的 x
+                segs += [((fr, bh), (xs, bh)), ((fr, -bh), (xs, -bh))]
+        return segs
 
-    def _objects(self, moved):
+    def _world_segments(self, x, y, th):
+        c, s = math.cos(th), math.sin(th)
+        out = []
+        for (a, b) in self.segments_robot_frame():
+            out.append(((x + a[0] * c - a[1] * s, y + a[0] * s + a[1] * c),
+                        (x + b[0] * c - b[1] * s, y + b[0] * s + b[1] * c)))
+        return out
+
+    @staticmethod
+    def _closest(p, a, b):
+        ax, ay = a
+        bx, by = b
+        ex, ey = bx - ax, by - ay
+        L2 = ex * ex + ey * ey
+        t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - ax) * ex + (p[1] - ay) * ey) / L2))
+        return ax + t * ex, ay + t * ey
+
+    def _immovable_contact(self, nx, ny, nth):
+        for o in self.objects:
+            if not o.get("immovable"):
+                continue
+            for (a, b) in self._world_segments(nx, ny, nth):
+                cx, cy = self._closest((o["x"], o["y"]), a, b)
+                if (o["x"] - cx) ** 2 + (o["y"] - cy) ** 2 < o["r"] ** 2:
+                    return True
+        return False
+
+    def _push_objects(self, ox, oy, oth, dt_ms):
+        """车体/推板线段扫过物体时把物体沿接触法向推出（准静态、无惯性），
+        再按接触摩擦系数带走一部分切向运动。物体自己不会动。"""
+        self.push_load = 0.0
+        segs = self._world_segments(self.x, self.y, self.th)
+        for o in self.objects:
+            if o["out"] or o.get("immovable"):
+                continue
+            x0, y0 = o["x"], o["y"]
+            r = o["r"]
+            for _ in range(30):
+                hit = False
+                for (a, b) in segs:
+                    cx, cy = self._closest((o["x"], o["y"]), a, b)
+                    dx, dy = o["x"] - cx, o["y"] - cy
+                    d = _hypot(dx, dy)
+                    if d >= r:
+                        continue
+                    hit = True
+                    if d < 1e-6:
+                        ex, ey = b[0] - a[0], b[1] - a[1]
+                        L = _hypot(ex, ey) or 1.0
+                        dx, dy, d = -ey / L, ex / L, 1.0
+                        nxn, nyn = dx, dy
+                        pen = r
+                    else:
+                        nxn, nyn = dx / d, dy / d
+                        pen = r - d
+                    o["x"] += nxn * pen
+                    o["y"] += nyn * pen
+                    # 切向摩擦：接触点随车体移动的切向分量带走一部分
+                    if self.contact_mu > 0:
+                        rx, ry = cx - self.x, cy - self.y
+                        c0, s0 = math.cos(oth - self.th), math.sin(oth - self.th)
+                        px_old = ox + (rx * c0 - ry * s0) * 1.0
+                        py_old = oy + (rx * s0 + ry * c0) * 1.0
+                        mvx, mvy = cx - px_old, cy - py_old
+                        tx, ty = -nyn, nxn
+                        tang = mvx * tx + mvy * ty
+                        o["x"] += self.contact_mu * tang * tx
+                        o["y"] += self.contact_mu * tang * ty
+                if not hit:
+                    break
+            moved = _hypot(o["x"] - x0, o["y"] - y0)
+            if moved > 0.02:
+                o["pushed_ms"] += dt_ms
+                o.setdefault("first_push_t", self.t)
+                self.push_load += o["load"]
+            if self.in_pocket(o):
+                o.setdefault("captured_t", self.t)
+            if self._outside_dist(o["x"], o["y"]) > self.band:
+                o["out"] = True
+                o["out_t"] = self.t
+
+    def in_pocket(self, o):
+        """物体是否在 V 形推板口袋里（仅用于统计）。"""
+        g = self.g
+        if not g["plow"]:
+            return False
         c, s = math.cos(self.th), math.sin(self.th)
+        dx, dy = o["x"] - self.x, o["y"] - self.y
+        f = dx * c + dy * s
+        l = -dx * s + dy * c
+        k = (f - g["apex"]) / g["plow_depth"]
+        return 0 < k <= 1.1 and abs(l) <= k * g["plow_half"] + 2
+
+    # 旧模型（理想化：进口即吸附在顶点，只有倒车才脱落），保留用于对比
+    PLOW_D = 95.0
+    PLOW_HALF = 70.0
+
+    def _objects_legacy(self, moved):
+        c, s = math.cos(self.th), math.sin(self.th)
+        self.push_load = 0.0
         for o in self.objects:
             if o.get("carried"):
                 if self.v < -5:
-                    o["carried"] = False           # 倒车：物体留在原地
+                    o["carried"] = False
                     continue
                 o["x"] = self.x + (self.PLOW_D - o["r"]) * c
                 o["y"] = self.y + (self.PLOW_D - o["r"]) * s
+                self.push_load += o["load"]
                 continue
             dx, dy = o["x"] - self.x, o["y"] - self.y
             f = dx * c + dy * s

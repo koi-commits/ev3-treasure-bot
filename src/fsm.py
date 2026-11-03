@@ -37,8 +37,11 @@ class EdgeFollower:
     """
 
     def __init__(self, side, speed, approach_steer, turn_rate,
-                 escape_ms, clear_ms, max_extensions=2):
+                 escape_ms, clear_ms, max_extensions=2, escape_speed=0):
         self.speed = speed
+        # escape_speed = 0：已验证的原地逃逸。>0：推着物体时用"前进中的急弯"逃逸，
+        # 因为原地转会把物体从 V 形推板里甩出去（仿真结论，待实机验证）。
+        self.escape_speed = escape_speed
         self.away = -side * turn_rate
         self.toward = side * approach_steer
         self.escape_ms = escape_ms
@@ -64,7 +67,7 @@ class EdgeFollower:
                 self.state = ESCAPE
                 self.until = t + self.escape_ms
                 self.ext = 0
-                return 0, self.away
+                return self.escape_speed, self.away
             return self.speed, self.toward
 
         if self.state == ESCAPE:
@@ -77,7 +80,7 @@ class EdgeFollower:
                         self.exhausted += 1
                     self.state = CLEAR
                     self.until = t + self.clear_ms
-            return 0, self.away
+            return self.escape_speed, self.away
 
         # CLEAR：盲走，忽略传感器
         if t >= self.until:
@@ -203,16 +206,17 @@ class Debounce:
 # 3. 负载监测：判断 V 形推板里是否推着物体（待实机验证信号强度）
 # ===================================================================
 class LoadMonitor:
-    """在线学习空载基线，之后检测持续抬升。
+    """推板里是否推着物体：电机负载持续高于空载基线。只是"嫌疑"，须再做 tap 确认。
 
     用法：每段直行开始时 restart()，每 tick push(load_sum)。
-      每段：先跳过 skip_n 个加速段样本，再用 learn_n 个样本算本段均值；
-      基线 = 历来各段均值的**最小值**（空推板一定是最小负载），
-      所以即使第一段一开始就推着物体，后面空载的段也会把基线拉回正确值。
-      之后滑动窗口均值 > 基线均值 + max(k*std, abs_margin) 连续 hold_n 次 -> True
+      * 每段先跳过 skip_n 个加速段样本；
+      * 每段前 learn_n 个样本的均值用来更新基线 —— 基线只往下更新（空推板负载最小），
+        所以即使第一段一开始就推着物体，后面空载的段也会把基线拉回；
+      * 一旦有基线，跳过加速段后立即开始检测（不必等本段学完）；
+      * 滑动窗口均值 > 基线 + max(k*std, abs_margin) 连续 hold_n 次 -> True
     """
 
-    def __init__(self, skip_n=6, learn_n=12, window=5, k=4.0, abs_margin=15.0, hold_n=4):
+    def __init__(self, skip_n=6, learn_n=12, window=5, k=4.0, abs_margin=15.0, hold_n=8):
         self.skip_n = skip_n
         self.learn_n = learn_n
         self.window = window
@@ -230,7 +234,6 @@ class LoadMonitor:
         self.restart()
 
     def restart(self):
-        """新的一段直行：重新跳过加速段、重新测本段均值；基线只会往下更新。"""
         self.n = 0
         self.leg = []
         self.win = []
@@ -251,6 +254,7 @@ class LoadMonitor:
                 if self.mean is None or m < self.mean:
                     self.mean = m
                     self.std = sqrt(sum((v - m) ** 2 for v in self.leg) / self.learn_n)
+        if self.mean is None:
             return False
         self.win.append(x)
         if len(self.win) > self.window:
@@ -266,6 +270,14 @@ class LoadMonitor:
         return self.over >= self.hold_n
 
 
+def tap_verdict(free, push, margin):
+    """tap 确认：倒车松开物体后低速重新前进，'自由段'与'重新接触段'的负载差 > margin 才算确认。"""
+    if len(free) < 3 or len(push) < 3:
+        return False, 0.0
+    d = sum(push) / len(push) - sum(free) / len(free)
+    return d > margin, d
+
+
 # ===================================================================
 # 4. 里程计（DriveBase 不提供 x/y，只给累计 distance 与 angle）
 # ===================================================================
@@ -277,9 +289,19 @@ class Odometry:
         self.x = 0.0
         self.y = 0.0
         self.heading = 0.0
+        self.offset = 0.0                # 航向修正（度）
+        self.k = 1.0                     # 转角比例修正（场上自标定得到）
+        self.a0 = None                   # 设置 k 时的原始角度
+        self.h0 = 0.0
+        self.raw = 0.0
         self._d = None
 
     def update(self, distance, angle):
+        self.raw = angle
+        if self.a0 is None:
+            self.a0 = angle
+            self.h0 = angle
+        angle = self.h0 + (angle - self.a0) * self.k + self.offset
         if self._d is None:
             self._d = distance
             self.heading = angle
@@ -291,6 +313,17 @@ class Odometry:
         self.x += dd * cos(rad)
         self.y += dd * sin(rad)
         self.heading = angle
+
+    def correct_heading(self, delta):
+        """把以后的航向整体加上 delta（度）。"""
+        self.offset += delta
+        self.heading += delta
+
+    def set_turn_scale(self, k):
+        """从现在起，原始角度的增量乘以 k 计入航向（当前航向不变）。"""
+        self.h0 = self.heading - self.offset
+        self.a0 = self.raw
+        self.k = k
 
     def bearing_to(self, x, y):
         """返回到 (x, y) 需要转的相对角度（DriveBase 约定，-180..180）和距离。"""
@@ -316,21 +349,70 @@ def heading_of(dx, dy):
 
 def straight_run_heading(pts, max_dev_deg=12.0, min_span=120.0):
     """沿边锯齿的逃逸点 -> 当前这条边的方向（DriveBase 航向）。
-    从最新点往回找，只保留与"最新一段"方向偏差 < max_dev_deg 的点（跨过拐角的旧点会被丢掉）。
-    跨度不足 min_span 返回 None。"""
+
+    1. 从最新点往回找，保留与"最新一段"方向偏差 < max_dev_deg 的点（跨过拐角的旧点丢掉）；
+    2. 对保留的点做最小二乘直线拟合（主方向），方向取"从旧到新"。
+    跨度不足 min_span 或点数 < 3 返回 None。"""
     n = len(pts)
-    if n < 2:
+    if n < 3:
         return None
     xn, yn = pts[-1]
     x1, y1 = pts[-2]
     ref = heading_of(xn - x1, yn - y1)
-    best = None
-    for k in range(n - 2, -1, -1):
+    start = n - 2
+    for k in range(n - 3, -1, -1):
         dx = xn - pts[k][0]
         dy = yn - pts[k][1]
         if abs(wrap180(heading_of(dx, dy) - ref)) > max_dev_deg:
             break
-        if dx * dx + dy * dy >= min_span * min_span:
-            best = heading_of(dx, dy)
-    return best
+        start = k
+    run = pts[start:]
+    if len(run) < 3:
+        return None
+    dx = run[-1][0] - run[0][0]
+    dy = run[-1][1] - run[0][1]
+    if dx * dx + dy * dy < min_span * min_span:
+        return None
+    m = len(run)
+    mx = sum(p[0] for p in run) / m
+    my = sum(p[1] for p in run) / m
+    sxx = sum((p[0] - mx) ** 2 for p in run)
+    syy = sum((p[1] - my) ** 2 for p in run)
+    sxy = sum((p[0] - mx) * (p[1] - my) for p in run)
+    ang = 0.5 * atan2(2.0 * sxy, sxx - syy)          # 主方向（弧度，数学约定）
+    ux, uy = cos(ang), sin(ang)
+    if ux * dx + uy * dy < 0:
+        ux, uy = -ux, -uy
+    return heading_of(ux, uy)
 
+
+def diagonal_choices(axis, current):
+    """矩形场地：所有边都平行/垂直于 axis。返回下一段可选的"对角线"方向（axis+45+k*90）。
+
+    沿对角线走，碰边入射角 ≈ 45°：光斑一定先于边侧轮子碰到白边（入射角 ≥ 44° 时成立）。
+    排除"原路返回"（与当前航向反方向相差 < 30°，否则会在角落里来回打转）和"继续向前"；
+    剩下的是相对当前航向 ±90° 的两个方向（像台球反射；其中一个可能朝向墙，会很快再碰边）。"""
+    back = current + 180.0
+    out = []
+    for k in range(4):
+        h = axis + 45.0 + 90.0 * k
+        d = abs(wrap180(h - back))
+        if 30.0 <= d <= 135.0:
+            out.append(wrap180(h))
+    return out
+
+
+def axis_snap(measured, axis):
+    """测到的边方向 measured 与场地轴向 axis（矩形：边方向 = axis + k*90）之差，吸附到最近的 90° 倍数后的残差。
+    返回应当加到航向上的修正量（-残差），范围 [-45, 45)。"""
+    d = wrap180(measured - axis)
+    k = int((d + 45.0) // 90.0)
+    return -wrap180(d - 90.0 * k)
+
+
+def rotate_about(pt, center, deg):
+    """把点 pt 绕 center 旋转 deg 度（数学约定：逆时针为正）。"""
+    rad = deg * pi / 180.0
+    c, s_ = cos(rad), sin(rad)
+    dx, dy = pt[0] - center[0], pt[1] - center[1]
+    return (center[0] + dx * c - dy * s_, center[1] + dx * s_ + dy * c)

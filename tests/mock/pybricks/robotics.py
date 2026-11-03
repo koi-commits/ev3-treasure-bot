@@ -20,10 +20,13 @@ class DriveBase:
         self._sim().cmd_drive(speed, turn_rate)
 
     def stop(self):
-        self._sim().cmd_stop()
+        self._sim().cmd_stop("coast")
 
-    brake = stop
-    hold = stop
+    def brake(self):
+        self._sim().cmd_stop("brake")
+
+    def hold(self):
+        self._sim().cmd_stop("hold")
 
     def straight(self, distance, then=None, wait=True):
         s = self._sim()

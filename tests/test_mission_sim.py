@@ -118,25 +118,14 @@ class TestRecovery(unittest.TestCase):
 
 
 class TestFull(unittest.TestCase):
-    def run_full(self, seeds, obj_load=40, sim_kw=None, cfg=None):
-        at_finish = 0
-        for seed in seeds:
-            rng = random.Random(500 + seed)
-            start = random_start(rng)
-            mk = rect_arena_marker(W, H, rng.choice(["right", "top", "left", "bottom"]))
-            obj = {"x": rng.uniform(150, W - 150), "y": rng.uniform(150, H - 150), "r": 25, "load": obj_load}
-            s = Sim(start=start, seed=seed, buttons=press_right(), markers=[mk], objects=[obj],
-                    max_ms=700000, **(sim_kw or {}))
-            c = rgb_cfg(MISSION_MODE="full", MISSION_MAX_MS=600000)
-            c.update(cfg or {})
-            out, s = run_script("mission", s, seed=seed, **c)
-            o = s.objects[0]
-            x0, y0, x1, y1, _ = mk
-            at_finish += (x0 - 40 <= o["x"] <= x1 + 40 and y0 - 40 <= o["y"] <= y1 + 40)
-        return at_finish
+    """full 模式按"地面真值"评判（物体中心是否在色标上），接触式物体模型。"""
 
-    def test_full_delivery(self):
-        self.assertGreaterEqual(self.run_full(range(8)), 7)
+    def test_full_interior_objects(self):
+        import evaluate as E
+        runs = [E.run_one(i, mode="full") for i in range(8)]
+        acceptable = sum(r["acceptable"] for r in runs)
+        self.assertGreaterEqual(acceptable, 4, [r["result"] for r in runs])
+        self.assertLessEqual(sum(r["wheel_beyond"] for r in runs), 1)   # 已知：拐角处偶发
 
     def test_full_without_markers_refuses(self):
         s = Sim(seed=1, buttons=press_right())

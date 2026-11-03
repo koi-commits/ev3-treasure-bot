@@ -1,0 +1,2 @@
+日期,序号,部分,脚本,MISSION_MODE,SENSE_MODE,FOLLOW_PROFILE,起点卡,物体卡,result行,time_ms,max_white_run_mm,turn_k,目视_轮子压线(否/压/越过),目视_物体最终位置(色标上/压线/色标外/出界/无),日志文件,备注
+2026-11-10,1,1,demo_edge,,reflection,validated,,,,,,,,,logs\demo_edge_1.txt,

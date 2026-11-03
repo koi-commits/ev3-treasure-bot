@@ -98,6 +98,16 @@ EDGE_ESCAPE_MS = 350            # 见白后**必定**原地转的时长（约 45
                                 # 因为刚转出去就立刻又斜着撞回来。
 EDGE_CLEAR_MS = 400             # 逃逸后"盲走"的时长，此期间忽略传感器，防止抖振
 
+# mission.py 用的巡线参数组（demo_edge.py 始终用上面的已验证参数）
+# "validated"：11-03 实机通过的参数。车几乎平行于边时，边侧轮子会压上白带（仿真中最深约 36 mm）
+# "steep"    ：同一状态机，更大逃逸角 + 更强回转，碰边入射角更陡，轮子压白更浅（仿真最深约 29 mm），
+#              慢约 20%。【只在仿真中验证】白带窄（< 40 mm）或规则不允许压线时在实机 A/B 测试。
+FOLLOW_PROFILE = "validated"
+FOLLOW_PROFILES = {
+    "validated": (22, 350, 400),     # (APPROACH_STEER deg/s, EDGE_ESCAPE_MS, EDGE_CLEAR_MS)
+    "steep": (50, 600, 300),
+}
+
 # 巡线增益（比例控制，误差按 black/white 对比度归一化）
 KP_NORM = 1.6                   # 归一化误差 -> 转向量比例
 STEER_LIMIT = 70                # 转向量限幅 (deg/s)
@@ -140,7 +150,9 @@ SIGNATURES = {}                 # [TBD]
 # ============================================================
 # "edge_to_finish" : 寻边 -> 沿边巡线 -> 遇终点色标停车     （下周二主测）
 # "survey"         : 寻边 -> 沿边巡线一段时间，只记录色标与遥测，不停车
-# "full"           : 找终点 -> 覆盖扫场(V 形推板) -> 负载判定推到物体 -> 送到终点
+# "calib"          : 找终点 -> 色标定位 -> 场上转角自标定（打印 turn_k），不需要物体
+# "capture"        : 只做搜索 + 负载嫌疑 + tap 确认（不放物体时测误报率）
+# "full"           : 找终点 -> 自标定 -> 随机反弹搜索 -> tap 确认 -> 推送 -> 交付
 MISSION_MODE = "edge_to_finish"
 MISSION_MAX_MS = 600000         # 整场兜底（full 模式需要数分钟）
 START_TIMEOUT_MS = 8000         # 等 RIGHT 键，超时自动开始（便于 pbrun 无人值守）
@@ -167,36 +179,55 @@ STALL_TURN_DEG = 60
 ARENA_DIAG_MM = 1600            # [TBD] 实测场地内部对角线 × 1.1（偏大只会恢复变慢，偏小会误判）
 RETURN_IN_MM = 150              # 穿过白带回到场内后再前进这么多
 
-# 到达终点
-FINISH_PUSH_MM = 20             # [TBD] 确认色标后继续前推；取决于推板顶点相对光斑的前伸量
-FINISH_BACK_MM = 100            # 送达后倒车离开物体
+# 到达终点 / 放下物体
+FINISH_BACK_MM = 100            # 送达后倒车离开（V 形推板倒车 = 把物体留在原地）
 
-# 覆盖扫场（full 模式）
-# "bounce"：随机反弹（直行到边 -> 退 -> 随机转 100–170°），不依赖几何标定  ← 默认
-# "lanes" ：往返扫描线，垂直于终点所在边；需要 GEOMETRY_CONFIRMED 后再用
-SWEEP_PATTERN = "bounce"
+# 几何 —— 推送与交付要用（[TBD] 实机量）
+SENSOR_OFFSET_MM = 60           # [TBD] 光斑中心到两轮轴线中点的前向距离（M1）
+OBJ_LEAD_MM = 110               # [TBD] 物体卡在推板顶点时，物体中心到两轮轴线中点的前向距离（M8）
+
+# 搜索：随机反弹覆盖（直行到边 -> 退 -> 随机转 100–170°）。不依赖几何标定。
+# （往返扫描线方案在仿真中成功率更低且有出界，已删除，见 docs/offline-2026-11-03.md）
 BOUNCE_MAX_LEGS = 60
-LANE_WIDTH_MM = 120             # [TBD] ≈ V 形推板开口宽度的 0.8
 SWEEP_SPEED = 100
-SWEEP_END_BACK_MM = 90          # [TBD] 扫描线到边后原地转之前的倒车量，须 ≥ 光斑前伸距离 + 20
-SWEEP_MAX_LANES = 40             # 含撞侧边后折返重扫的线数
+SWEEP_END_BACK_MM = 90          # [TBD] 到边后原地转之前的倒车量，须 ≥ 光斑前伸距离 + 20
 
-# 推到物体判定（负载）
-CAPTURE_MODE = "load"           # "load" 或 "off"（off = 只扫场不判定）
-LOAD_SKIP_N = 6                 # 每段直行前 6 个样本是加速段，不学习
-LOAD_LEARN_N = 12               # 用 12 个样本学空载基线
+# 推到物体判定：负载嫌疑（LoadMonitor）+ tap 确认
+CAPTURE_MODE = "load"           # "load" 或 "off"（off = 只扫场不判定，无法完成交付）
+LOAD_SKIP_N = 6                 # 每段直行前 6 个样本是加速段
+LOAD_LEARN_N = 12               # 每段前 12 个样本参与基线（基线只往下更新）
 LOAD_WINDOW = 5
 LOAD_K = 4.0
 LOAD_ABS_MARGIN = 15.0          # [TBD] mNm，probe_load.py 实测后改
-LOAD_HOLD_N = 4
+LOAD_HOLD_N = 8                 # 连续 8 个样本（≈40 mm）超阈值才算嫌疑
+TAP_BACK_MM = 50                # tap：倒车松开物体的距离
+TAP_SPEED = 60                  # tap：重新前进速度（mm/s）
+TAP_MARGIN = 8.0                # [TBD] mNm，重新接触段比自由段高出这么多才确认
+TAP_SEAT_MM = 120               # tap 重新接触后再直推这么远：晚段负载仍高 = 物体在口袋里（不是只蹭到臂外侧）
+CARRY_LOST_N = 12               # 推送中负载连续 12 个样本回落到空载水平 -> 判定物体丢失
 
-# 交付
-DELIVERY_MODE = "odometry"      # "odometry"：按里程计走回记录的终点位置，失败再沿边找；
-                                # "edge"：直接直行到边再沿边找色标（不依赖几何标定）
-DELIVER_FOLLOW_MAX_MS = 120000
+# 色标定位与交付几何
+MAP_MS = 9000                   # 首次确认终点后继续沿边走这么久，求色标中心与场地轴向
+MARKER_INSET_MM = 15            # [TBD] 目标点 = 色标中心估计再往场内移这么多（色标深度/4 左右）
+APPROACH_STANDOFF_MM = 250      # 交付前先到目标点正前方（场内侧）这么远的待命点，再直线推进
+# 场上转角自标定（full 模式，记录终点后在同一条边上做一次，约 20 s）
+SELF_CAL = True
+SELFCAL_IN_MM = 160             # 退到离边这么远再原地转（光斑转圈不会碰到白边）
+SELFCAL_SPIN = 720              # 原地转的角度（越大越准，误差 ∝ 1/转角）
+SELFCAL_FOLLOW_MS = 9000        # 回到边上沿边走多久来测边方向
+SELFCAL_MAX_ERR = 60            # 测得误差超过这个（度）视为测量失败，不修正
 
-# 几何（只用于仿真与文档；控制代码不依赖）
-SENSOR_OFFSET_MM = None         # [TBD] 颜色传感器光斑到两轮轴线中点的前向距离
+EDGE_PEEK = False               # 【实验，默认关】碰边后沿边走一小段测边方向、修正里程计航向。
+                                # 仿真：每次进入巡线都有小概率轮子越线，十几段累积后几乎必然越线 -> 不启用
+PEEK_MS = 4000
+PEEK_MAX_CORR = 25              # 单次修正上限（度）；超过说明测量不可信，不修正
+BOUNCE_JITTER_DEG = 15          # 随机反弹：对角线方向 ± 抖动（入射角 30–60°）
+
+# 推送模式（carrying）
+CARRY_SPEED = 70                # mm/s
+CARRY_TURN_RATE = 35            # deg/s，弧线转向（半径约 CARRY_SPEED/rad(rate) ≈ 115 mm）
+PURSUIT_GAIN = 1.5              # 纯追踪：转向率(deg/s) = 增益 × 相对方位角(deg)，限幅 CARRY_TURN_RATE
+CARRY_ESCAPE_SPEED = 40         # mm/s，推送中沿边 ESCAPE 用前进急弯（0 = 已验证的原地转）
 
 
 # ------------------------------------------------------------

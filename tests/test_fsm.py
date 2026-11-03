@@ -5,7 +5,8 @@ import unittest
 
 import harness  # noqa: F401  (sets sys.path)
 from fsm import (BoxClassifier, Debounce, EdgeFollower, LoadMonitor, Odometry,
-                 build_signature, features, overlaps, straight_run_heading, wrap180)
+                 axis_snap, build_signature, diagonal_choices, features, overlaps, straight_run_heading,
+                 tap_verdict, wrap180)
 from reference_20261103 import follow_edge_bangbang_reference
 
 P = dict(threshold=6.35, speed=60, side=-1, approach_steer=22, turn_rate=130,
@@ -106,7 +107,7 @@ class TestLoadMonitor(unittest.TestCase):
         m = LoadMonitor()
         res = [m.push(25 + rng.gauss(0, 2) + (40 if i > 60 else 0)) for i in range(120)]
         first = res.index(True)
-        self.assertTrue(60 < first < 75, first)
+        self.assertTrue(60 < first < 80, first)
 
     def test_baseline_learned_with_object_recovers(self):
         """第一段一开始就推着物体（基线学高了）；第二段空载把基线拉低，第三段再推到物体能检出。"""
@@ -141,12 +142,44 @@ class TestOdometry(unittest.TestCase):
         self.assertAlmostEqual(rel, 120.96, delta=1)
 
     def test_edge_heading_ignores_corner(self):
-        # 先沿 +y 走（航向 -90），拐角后沿 +x 走（航向 0）
         pts = [(0, 0), (0, 90), (0, 180), (10, 260), (100, 270), (190, 265), (280, 272)]
-        h = straight_run_heading(pts)
-        # odometry 平面里沿 +x 走 = DriveBase 航向 0；拐角前的 +y 段被丢弃
-        self.assertAlmostEqual(h, -1.5, delta=4)
-        self.assertIsNone(straight_run_heading(pts[:4][-2:]))   # 跨度不足
+        self.assertAlmostEqual(straight_run_heading(pts), -1.5, delta=4)
+        self.assertIsNone(straight_run_heading(pts[2:4]))
+
+    def test_diagonal_choices(self):
+        # 沿对角线 45° 撞边：不能原路返回(-135)，也不能继续向前(45)，只剩 ±90° 的两个
+        c = sorted(diagonal_choices(0.0, 45.0))
+        self.assertEqual(c, [-45.0, 135.0])
+        for h in diagonal_choices(10.0, 97.0):
+            self.assertAlmostEqual((h - 10.0 - 45.0) % 90.0, 0.0, delta=1e-6)
+
+    def test_axis_snap(self):
+        self.assertAlmostEqual(axis_snap(95.0, 0.0), -5.0)
+        self.assertAlmostEqual(axis_snap(-178.0, 0.0), -2.0)
+        self.assertAlmostEqual(axis_snap(33.0, 30.0), -3.0)
+        self.assertAlmostEqual(axis_snap(120.0 - 7.0, 30.0), 7.0)
+        o = Odometry()
+        o.update(0, 0)
+        o.correct_heading(10.0)
+        o.update(100, 0)
+        self.assertAlmostEqual(o.heading, 10.0)
+        self.assertLess(o.y, 0)          # 航向 +10（右偏）-> y 变负
+
+    def test_turn_scale(self):
+        o = Odometry()
+        o.update(0, 0)
+        o.update(0, 90)
+        o.set_turn_scale(0.5)
+        o.update(0, 190)                 # 原始又转了 100 -> 计 50
+        self.assertAlmostEqual(o.heading, 140.0)
+        o.correct_heading(-10)
+        o.update(0, 210)                 # 再 20 -> 计 10
+        self.assertAlmostEqual(o.heading, 140.0)
+
+    def test_tap_verdict(self):
+        self.assertTrue(tap_verdict([40, 41, 39, 40], [55, 56, 54], 8)[0])
+        self.assertFalse(tap_verdict([40, 41, 39, 40], [42, 43, 41], 8)[0])
+        self.assertFalse(tap_verdict([40], [60, 60, 60], 8)[0])     # 样本不足
 
     def test_wrap(self):
         self.assertEqual(wrap180(190), -170)

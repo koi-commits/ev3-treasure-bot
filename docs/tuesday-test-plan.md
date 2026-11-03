@@ -1,193 +1,188 @@
-# 下周二（2026-11-10）实机测试方案
+# 下周二（2026-11-10）实机测试方案 v2
 
-> 执行人：DSH　|　预计 2.5–3 h　|　所有新功能均为**离线开发、待实机验证**
-> 原则：**按顺序做，每步有通过标准；不通过就停在那一步记录现象，不要跳步。**
-> 每次运行都把输出存成日志：`pbrun.cmd src\xxx.py > logs\xxx_N.txt 2>&1`，跑完 `type logs\xxx_N.txt`。
-> 急停：EV3 **CENTER 键**。车跑起来时一只手扶着 USB 线，防止被拖拽。
+> 执行人：DSH　|　约 3 h　|　除"寻边 + 巡线（demo_edge）"外，**所有功能都只经过离线验证**
+> 原则：**按顺序做；每步有通过标准；不通过就停在那一步，记录现象，按"不通过"列处理。**
 
----
+## 通用约定
 
-## 0. 准备（15 min，不开车）
+- 每次运行都存日志：`pbrun.cmd src\xxx.py > logs\xxx_N.txt 2>&1`，跑完 `type logs\xxx_N.txt`
+- 全部跑完：`D:\python\python.exe tools\parse_logs.py logs > logs\summary.md`，一张表汇总所有运行
+- 急停：EV3 **CENTER 键**。车在动时一只手扶 USB 线
+- 改 `src/config.py` 只改本文写明的行；每次改动在 `docs/calibration.md` 记一行
+- 每次运行按 `docs/run-sheet.csv` 记录一行（起点卡、结果、**目视**：轮子是否压线/越线、物体最终位置）。目视记录最重要，因为机器人无法看见物体，`DELIVERED` 只是它"以为"送到了
 
-**带齐**：充满的电池（≥ 7400 mV）、最终比赛用的**终点色标实物**、目标物体、卷尺/直尺、胶带、笔。
+## 起点卡与物体卡（让实机结果可重复、可与仿真对比）
 
-**PC 侧离线自检**（确认拷过去的工程是好的）：
+场地坐标：站在**终点色标所在的边**外面看场地，左下角为原点，x 向右，y 向场内。W、H 为场地内部尺寸。
+朝向用钟点：12 点 = 背离色标边（朝场内深处），3 点 = 向右，6 点 = 朝色标边，9 点 = 向左。
 
-```bat
-cd <PROJ>
-D:\python\python.exe tests\run_all.py
-```
-
-期望最后一行 `OK`（37 个测试，几秒钟）。
-
-**用尺子量，填进 `docs/calibration.md` 的"待测量"表**（这些数字直接决定算法安全边界）：
-
-| # | 测量项 | 用途 | 关键阈值 |
+| 卡 | 类别 | 车体中心位置 | 朝向 |
 |---|---|---|---|
-| M1 | 光斑中心 → 两轮轴线中点的前向距离 | `SENSOR_OFFSET_MM` | **> 80 mm 要报告**（拐角原地转时光斑会扫出白边） |
-| M2 | 传感器底面离地高度 | `SENSOR_HEIGHT_MM` | 白纸反射率只有 11 可能是装太高 |
-| M3 | 白色边界宽度 | 判断越界余量 | **< 40 mm 要报告** |
-| M4 | 白边外侧是什么（桌面颜色/地面/悬空） | 出界后传感器读到什么 | 深色 = 危险组合 |
-| M5 | 场地内部长 × 宽，算对角线 | `ARENA_DIAG_MM = 对角线 × 1.1` | 必须改 config |
-| M6 | 终点色标：颜色、尺寸、位置（贴边/场内）、材质 | 色标方案 | 灰/黑/白色标不可用 |
-| M7 | 目标物：尺寸、重量、形状 | 推板与负载判定 | |
+| N1 | 正常 | (0.25W, 0.5H) | 12 点 |
+| N2 | 正常 | (0.75W, 0.5H) | 7 点 |
+| N3 | 正常 | (0.5W, 0.3H) | 2 点 |
+| N4 | 正常 | (0.5W, 0.7H) | 5 点 |
+| N5 | 正常 | (0.3W, 0.75H) | 10 点 |
+| N6 | 正常 | (0.7W, 0.25H) | 4 点 |
+| B1 | 边界 | 离右边 8 cm，0.5H | 3 点（**光斑已压在白线上**） |
+| B2 | 边界 | 离上边 8 cm，0.5W | 1 点（斜对白线） |
+| B3 | 边界 | 离左边 10 cm，0.3H | 12 点（平行于边） |
+| C1 | 角落 | 离两条边各 10 cm（右上角） | 1 点 |
 
-改 `src/config.py`：`ARENA_DIAG_MM = <M5 × 1.1>`。
+| 卡 | 物体中心位置 |
+|---|---|
+| O1 | (0.5W, 0.5H) |
+| O2 | (0.3W, 0.6H) |
+| O3 | (0.7W, 0.4H) |
+| O4（靠边） | 离左边 6 cm，0.5H |
+| O5（靠边） | 离上边 6 cm，0.6W |
+
+**摆放规则**：车身和光斑都必须在深色场地内。光斑一开始就在白线外侧的深色桌面上时，单个朝下传感器在物理上分不出场内场外。
 
 ---
 
-## 1. 基线回归：`demo_edge.py`（10 min）
+## 第 0 部分 测量与规则确认（20 min，不开车）★ 决定后面怎么判通过
 
-确认硬件与 11-03 状态一致（**demo_edge 是冻结的已验证版本**）。
+**PC 自检**：`D:\python\python.exe tests\run_all.py`，最后一行应为 `OK`。
+
+**量尺寸**，填进 `docs/calibration.md`：
+
+| # | 项目 | 用途 / 改哪里 | 关键阈值 |
+|---|---|---|---|
+| M1 | 光斑中心 → 两轮轴线中点 前向距离 | `SENSOR_OFFSET_MM` | |
+| M2 | 两轮触地点间距（实测） | 对照 `AXLE_TRACK_MM` | |
+| M3 | **白线宽度** | 判断轮子越线风险 | **< 40 mm 要特别注意**（仿真：25 mm 时验证参数 10/12 次轮子越过整条白线） |
+| M4 | 白线外侧是什么 | 出界后读到什么 | 深色 = 危险组合 |
+| M5 | 场地内部 W × H，对角线 | `ARENA_DIAG_MM = 对角线 × 1.1` | **必须改** |
+| M6 | 终点色标颜色/尺寸/位置 | 色标方案 | 灰/黑/白不可用；建议深度 ≥ 80 mm |
+| M7 | 物体尺寸/重量/表面 | 推板、负载判定 | 越重越好测 |
+
+**问清规则**（写进 `docs/calibration.md`）：
+- R1 轮子**压在**白线上算不算出界？轮子**越过**整条白线呢？
+- R2 物体怎样算"送达"：中心在色标上？完全在色标内？压线算不算？
+- R3 物体被推到白线上/外，是否判负？
+
+---
+
+## 第 1 部分 基线回归 + 轮子观察（15 min）
 
 ```bat
 pbrun.cmd src\demo_edge.py > logs\demo_edge_1.txt 2>&1
 ```
 
-车放场地内部、车头朝白边、距离 ≥ 20 cm，按 RIGHT。
+车放场地内部，车头朝白边，距离 ≥ 20 cm，按 RIGHT。
 
-**通过**：3 段都 `edge found`；每段 `white_frac` 0.05–0.3、`edge_twists` 3–6；目视不越界、拐角不抖。
-**不通过** → 停。先查电池、传感器是否被碰歪，重跑 `calibrate.py`。后面所有步骤都依赖这一步。
+**这次多看一件事**：沿边时，**靠白线一侧的轮子**压不压白线？最深压到哪里？（仿真预测：几乎一直压着，最深约 35 mm。原因：光斑在车头中线上，车接近平行于边时，边侧轮子比光斑更靠外。）
 
----
-
-## 2. 颜色传感器模式切换：`probe_timing.py`（5 min，不开车）
-
-```bat
-pbrun.cmd src\probe_timing.py > logs\probe_timing_1.txt 2>&1
-```
-
-听到每声"嘀"后，**整段 6 s 里一直用手把车在黑地面和白边之间慢慢来回推**。
-
-记录 5 个 PHASE 的 `ms_per_loop`、`distinct`、`longest_same`。判读：
-
-| 现象 | 结论 | 后续 |
-|---|---|---|
-| A、B 读数有变化，D 读数几乎不变 | **H1 成立**：模式来回切换导致读不到新值（11-03 色标失败的主因） | 新代码已按单模式设计，继续 |
-| A、B、D 都有变化 | 切换不是问题 | 继续；若 C 的 `ms_per_loop` < 30 可考虑 `SENSE_MODE="dual"` |
-| A 有变化、B（rgb）不变 | rgb 模式本身有问题 | 跳到第 3 步的 color() 段看看，记录后报告 |
-| 全部不变 | 传感器/接线问题 | 停，换端口/传感器 |
-
-E 段的 `ms_per_loop` 是巡线循环真实周期（期望约 50–60 ms），记下来。
-
----
-
-## 3. 色标可见性：`color_probe.py`（10 min，不开车）
-
-**把色标贴在比赛场地上**，用手推车让光斑依次压在：地面 → 白边 → 色标 → 其他颜色，每处停约 4 s。不要把色标举到传感器下面。
-
-```bat
-pbrun.cmd src\color_probe.py > logs\color_probe_1.txt 2>&1
-```
-
-**通过**：压到色标时 `rgb=` 与地面、白边明显不同，且 `cr/cg`（通道占比）与白边不同（白边 cr≈cg≈33；红色标 cr 明显 > 40）。
-**不通过（色标 rgb 与地面/白边几乎一样）**：
-1. 确认光斑真的在色标上（离色标边缘 ≥ 1 cm）。
-2. 把传感器**降低一个 LEGO 单位（8 mm）**再试（只是挪位置，不加硬件）。**降低后必须重跑 `calibrate.py` + `probe_live.py`，更新 BLACK/WHITE，再重跑第 1 步 demo_edge。**
-3. 仍不行 → 换高饱和度色标（红/蓝胶带最好），记录后报告。
-
----
-
-## 4. 色标标定：`calibrate_marker.py`（10 min，不开车）
-
-```bat
-pbrun.cmd src\calibrate_marker.py > logs\calibrate_marker_1.txt 2>&1
-```
-
-按提示依次把车放在 **FLOOR → WHITE → FINISH**（EXTRA 不需要就等它超时跳过），每处按 RIGHT。**采样那 2–3 s 里用手把车在该表面上挪动 1–2 cm。**
-
-**通过**：输出 `==== RESULT: PASS ====`。把打印出的这一段原样粘进 `src/config.py` 第 9 节，替换原来的三行：
-
-```python
-SENSE_MODE = "rgb"
-RGB_EDGE_BRIGHT = ...
-SIGNATURES = { ... }
-```
-
-然后看 LIVE 模式：手推车跨过各表面，屏幕标签应正确切换（地面绿灯、色标红灯、未识别橙灯），跨黑白边时**不应出现 `finish`**。CENTER 结束。
-
-**FAIL** → 看 `PROBLEM:` 行：
-- `overlap: floor ~ white` → 黑白在 rgb 下分不开，回到第 3 步检查高度。
-- `floor/white mix ... looks like finish` → 色标颜色太接近灰色，换色标。
-
----
-
-## 5. 新任务程序，先用已验证的传感模式：`mission.py` survey（10 min）
-
-目的：只验证新的监督层（丢边/越界/堵转恢复），传感方式与 demo_edge 相同。
-
-临时改 `config.py`：`SENSE_MODE = "reflection"`、`MISSION_MODE = "survey"`、`FOLLOW_MAX_MS = 60000`
-
-```bat
-pbrun.cmd src\mission.py > logs\mission_survey_1.txt 2>&1
-```
-
-**通过**：60 s 沿边不越界；结尾 `==== SUMMARY ====` 中 `white_frac` 0.05–0.3，`overruns` 很少（拐角偶发可以）。
-记录 `lost / overruns / stalls / outside_returns` 的数字。
-
----
-
-## 6. 主测：寻边 → 巡线 → 识别终点停车（30 min）
-
-改回：`SENSE_MODE = "rgb"`（第 4 步的标定结果）、`MISSION_MODE = "edge_to_finish"`、`FOLLOW_MAX_MS = 120000`
-
-**5 次**，每次换**随机起点与朝向**（规则：**车身和光斑都必须在深色场地内**），其中至少 1 次光斑压在白边上起步、1 次在角落附近起步：
-
-```bat
-pbrun.cmd src\mission.py > logs\mission_e2f_1.txt 2>&1
-```
-
-每次记录：起点描述、`result:`、`time_ms`、目视是否越界、停车时光斑是否在色标上。
-
-**通过**：≥ 4/5 `result: PASS finish`，停在色标上，全程车身不出界。
-
-| 现象 | 处理 |
+| 通过 | 不通过 |
 |---|---|
-| 沿边形态和 demo_edge 明显不同（rgb 模式下判边不稳） | 把 `logs\` 里 trace 行的 `rgb=` 发回分析；临时可试 `SENSE_MODE="dual"`（第 2 步 C 段 < 30 ms 时） |
-| 经过色标不停 | 看日志里有无 `marker finish`；没有 → 标定问题，重做第 4 步并在色标上**开车**采样 |
-| 没到色标就停（误报） | 记录停车位置的表面；可把 `MARKER_CONFIRM` 从 3 调到 5 |
-| 整圈找不到 | `FOLLOW_MAX_MS` 不够绕一圈（看 `time_ms`），调大 |
+| 3 段都 `edge found`；`white_frac` 0.05–0.3；`edge_twists` 3–6；目视不越界 | 停。查电池、传感器是否碰歪；重跑 `calibrate.py` |
+
+**规则决策**：
+- 若 R1 不允许轮子压线，或 M3 < 40 mm 且看到轮子越过白线 → 第 3 部分加做 A/B：`FOLLOW_PROFILE = "steep"`（仿真：最深压线 36 → 29 mm，慢约 20%）
+- 若都允许 → 保持 `"validated"`
 
 ---
 
-## 7. 几何标定：`calibrate_geometry.py`（15 min）
+## 第 2 部分 颜色：模式切换 → 可见性 → 标定（25 min，不开车）
 
-需要 ≥ 1.2 m 直线空地。按脚本提示：直行 1000 mm 量实际距离、原地转 720° 看误差，按打印出的公式改 `WHEEL_DIAMETER_MM`、`AXLE_TRACK_MM`。各复测一次，误差 < 1% 则 `GEOMETRY_CONFIRMED = True`。
+**2a** `pbrun.cmd src\probe_timing.py`。每声"嘀"后的 6 s 里，一直用手把车在黑地面和白线之间来回推。
+
+| 现象 | 结论 / 后续 |
+|---|---|
+| A、B 有变化，D 不变 | **模式切换导致读不到新值**（11-03 色标失败的主因）。新代码已按单模式设计 → 继续 |
+| A、B、D 都有变化 | 切换不是问题 → 继续 |
+| 全部不变 | 传感器/接线问题 → 停 |
+
+记下 E 段的 `ms_per_loop`（巡线循环的真实周期，期望 50–60 ms）。
+
+**2b** `pbrun.cmd src\color_probe.py`。色标贴在比赛场地上，手推车让光斑依次压在：地面 → 白线 → 色标。
+- 通过：色标的 `rgb=` 与地面、白线明显不同，且 `cr/cg` 与白线不同。
+- 不通过：先确认光斑离色标边缘 ≥ 1 cm；再试把传感器降低 8 mm（**降低后必须重跑 calibrate.py、probe_live.py、demo_edge.py**）；仍不行就换高饱和度色标（红/蓝胶带）。
+
+**2c** `pbrun.cmd src\calibrate_marker.py`。按提示依次放 FLOOR → WHITE → FINISH，采样时用手把车在该表面上挪动 1–2 cm。
+- 通过：`RESULT: PASS`。把打印出的 `SENSE_MODE / RGB_EDGE_BRIGHT / SIGNATURES` 粘进 config 第 9 节。LIVE 模式下跨过黑白边时不能出现 `finish`。
+- 不通过：看 `PROBLEM:` 行（`overlap floor~white` → 高度问题；`mix looks like finish` → 换色标）。
+
+---
+
+## 第 3 部分 主测：寻边 → 巡线 → 终点停车（35 min）
+
+`MISSION_MODE = "edge_to_finish"`，`SENSE_MODE = "rgb"`（2c 的结果）。
+
+| 组 | 起点卡 | 次数 | 通过标准 |
+|---|---|---|---|
+| 3a | N1–N6 | 6 | ≥ 5/6 `PASS finish` 且光斑停在色标上；无轮子越过白线 |
+| 3b | B1、B2、B3 | 3 | ≥ 2/3 |
+| 3c | C1 | 1 | 记录 |
+| 3d（可选） | 仅当第 1 部分决定 A/B 时：N1–N3 用 `FOLLOW_PROFILE = "steep"` | 3 | 与 3a 比较压线深度和用时 |
+
+每次记录：`result:`、`time_ms`、`max_white_run_mm`（光斑连续见白时走过的最大距离，是越线深度的实机代理指标）、目视轮子情况。
+
+| 不通过时 | 处理 |
+|---|---|
+| 沿边形态与 demo_edge 明显不同（rgb 判边不稳） | 若 2a 的 C 段 < 30 ms，试 `SENSE_MODE = "dual"`；否则把日志 trace 行发回分析 |
+| 经过色标不停 | 日志里有无 `marker finish`；没有 → 在色标上**开车**重新标定 |
+| 没到色标就停 | 记下停车处是什么表面；`MARKER_CONFIRM` 3 → 5 |
+
+---
+
+## 第 4 部分 几何标定 + 场上自标定（25 min）
+
+**4a** `pbrun.cmd src\calibrate_geometry.py`：直行 1000 mm、原地转 720°，按打印的公式改轮径/轮距。
+**转角要尽量准**：仿真显示转角比例误差 1% 时交付成功率减半。用地上的参考线看 720° 后的偏差，读到 1°。
+
+**4b** `MISSION_MODE = "calib"`，起点 N1，跑 **3 次**：
 
 ```bat
-pbrun.cmd src\calibrate_geometry.py > logs\geometry_1.txt 2>&1
+pbrun.cmd src\mission.py > logs\calib_N.txt 2>&1
 ```
+
+流程：找终点 → 沿色标边继续走 9 s → 退到场内原地转 720° → 回到同一条边再测。结果行为 `END calib turn_k=…`。
+
+| 通过 | 不通过 |
+|---|---|
+| 3 次 `turn_k` 彼此相差 < 0.5%，且接近 1.000（4a 已标定的话） | `selfcal: skip` 或 `no edge fit` → 色标离角落太近或沿边距离不够，把日志发回；`turn_k` 波动 > 1% → 原地转打滑，地面问题 |
 
 ---
 
-## 8.（有 V 形推板时）负载信号：`probe_load.py`（15 min）
+## 第 5 部分 推板 + 捕获判定（30 min）— 需要已搭好的推板（见 `docs/object-strategy.md` §3，**必须有侧板**）
 
-推板要求见 `docs/object-strategy.md`。前方 ≥ 1 m 空地：
+搭完推板后**先重跑一次 demo_edge**（推板不能挡住光斑）。
 
-```bat
-pbrun.cmd src\probe_load.py > logs\probe_load_1.txt 2>&1
-```
+**5a** `pbrun.cmd src\probe_load.py`：EMPTY → HOLD → ONLINE 三段。按 `SUGGEST:` 改 `LOAD_ABS_MARGIN`。
+- 通过：HOLD − EMPTY > 4 倍 std，ONLINE 在约 300 mm 处触发
+- 不通过：物体太轻 → 记录数值后，后面的 full 测试照做（会显示检测率低）
 
-三段：EMPTY（空推板）→ HOLD（物体放推板顶点）→ ONLINE（物体放车前约 30 cm）。
-按输出 `SUGGEST:` 行改 `LOAD_ABS_MARGIN` 或把 `CAPTURE_MODE` 改为 `"off"`。
-**通过**：HOLD 比 EMPTY 高出 > 4 倍 std，ONLINE 在约 300 mm 处触发。
+**5b** `MISSION_MODE = "capture"`，**不放物体**，跑 2 次。每次约 60 段，几分钟后停或手动 CENTER。
+- 通过：`suspects` 可以有，但 `captures` 必须是 0（误报会导致"交付空气"）
 
----
+**5c** `MISSION_MODE = "capture"`，物体放 O1，起点 N3，跑 2 次。
+- 通过：`END capture: CONFIRMED`，目视物体确实在推板口袋里（不是蹭在推板外侧）
 
-## 9.（时间允许）完整任务：`mission.py` full（30 min）
-
-`MISSION_MODE = "full"`。物体随机放在场地内，3 次。
-
-```bat
-pbrun.cmd src\mission.py > logs\mission_full_1.txt 2>&1
-```
-
-记录 `result:`、物体最终位置相对色标、是否有物体被推出场地。目标：≥ 2/3 物体进入色标区。
+日志里 `tap d_early=… d_late=…` 的两个数，把有物体和没物体的值记下来，用于调 `TAP_MARGIN`。
 
 ---
 
-## 交回的东西
+## 第 6 部分（时间允许）完整任务（30 min）
 
-1. 整个 `logs\` 目录
-2. 更新后的 `docs/calibration.md`（M1–M7 + 各步数字）和 `src/config.py`
-3. 每步：通过 / 不通过 + 一句现象描述（尤其是目视看到、日志里看不到的东西）
+`MISSION_MODE = "full"`，填好 `SENSOR_OFFSET_MM`（M1）和 `OBJ_LEAD_MM`（物体落座后中心到轮轴中点的距离）。
+
+| 次 | 起点 | 物体 |
+|---|---|---|
+| 1 | N1 | O1 |
+| 2 | N2 | O2 |
+| 3 | N4 | O3 |
+| 4（可选） | N5 | O4（靠边） |
+
+每次目视记录：物体最终位置（在色标上 / 压线 / 色标外 / 出界）、有无轮子越线、`result:`、`turn_k`。
+目标（仿真预期）：内部物体约一半送达。**这一步主要是找问题，不是验收。**
+
+---
+
+## 交回
+
+1. `logs\` 全部日志 + `logs\summary.md`
+2. 填好的 `docs/run-sheet.csv`（每次运行一行，含目视结果）
+3. 更新后的 `docs/calibration.md`（M1–M7、R1–R3、各步数字）和 `src/config.py`
+4. 推板照片（俯视、侧视各一张）
