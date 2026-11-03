@@ -1,5 +1,10 @@
 # EV3 Treasure Bot — 自主寻宝与定点运输
 
+> **过程存档**：[`开发全过程 / 版本时间线`](docs/development-timeline.md) · [`初版任务方案与五人分工`](docs/project-overview.md) · [`首次实机日志`](docs/session-2026-11-03.md) · [`两轮离线改进`](docs/offline-2026-11-03.md) · [`最终交接`](docs/final-handoff-2026-11-03.md)
+>
+> Git 提交中的早期版本为依据 ZIP 文件**事后导入的快照**，并非完整原始逐次提交历史。最新分支以 Final 版为准；**只有自动寻边与沿边巡线已经获得实机通过**，完整寻宝仍待测试。
+
+
 LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks 4.1.2 MicroPython。
 
 **当前阶段**
