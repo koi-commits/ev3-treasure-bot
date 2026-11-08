@@ -54,7 +54,9 @@ Final 对照完整执行生产参数：`LoadMonitor → 倒车 50 mm → free/ea
 
 ## 5. EV3 影子模式
 
-`src/probe_tap_shadow.py` 完整复用 Final tap/seat 参数，再执行保持探针。模型只输出日志，不改变 Final 判定、搜索或交付。每次运动必须 RIGHT 按下再松开；CENTER 保持为紧急停止；见白中止；动作结束后由操作者按 LEFT=未捕获、RIGHT=捕获标注世界真值。
+`src/probe_tap_shadow.py` 完整复用 Final tap/seat 参数，再执行保持探针。模型只输出日志，不改变 Final 判定、搜索或交付。V2 对初始倒车、tap 前进和左右探针均持续检查白边、卡滞、无进展和独立超时；tap 与探针分别需要一次 RIGHT 按下再松开，CENTER 保持为紧急停止。
+
+V2 在探针前后分别要求操作者按 LEFT=未捕获、RIGHT=捕获，因此可以直接统计 `0to1` 再落座与 `1to0` 掉落；任何中止都标为不完整，不进入准确率。简明操作卡见 [`tap-shadow-runbook.md`](tap-shadow-runbook.md)。
 
 日志包含每个 50 ms 样本、Final 固定规则、模型概率、视觉标签和最大单步推理耗时。解析：
 

@@ -4,7 +4,7 @@
 >
 > Git 提交中的早期版本为依据 ZIP 文件**事后导入的快照**，并非完整原始逐次提交历史。最新分支以 Final 版为准；**只有自动寻边与沿边巡线已经获得实机通过**，完整寻宝仍待测试。
 
-> **AI 阶段一/接触复核（2026-11-08）**：端到端低层 GRU 在独立测试为 0/24，不能替代 Final；旧接触模型的 2/50 虚报口径已撤回。当前推荐实验是 Final tap+seat 后的保持探针 GRU，仍只允许影子运行。见 [`docs/ai-learning-2026-11-08.md`](docs/ai-learning-2026-11-08.md) 与 [`docs/ai-contact-event-2026-11-08.md`](docs/ai-contact-event-2026-11-08.md)。
+> **AI 阶段一/接触复核（2026-11-08）**：端到端低层 GRU 在独立测试为 0/24，不能替代 Final；旧接触模型的 2/50 虚报口径已撤回。当前推荐实验是 Final tap+seat 后的保持探针 GRU，仍只允许影子运行。见 [`docs/ai-learning-2026-11-08.md`](docs/ai-learning-2026-11-08.md)、[`docs/ai-contact-event-2026-11-08.md`](docs/ai-contact-event-2026-11-08.md) 与可直接执行的 [`docs/tap-shadow-runbook.md`](docs/tap-shadow-runbook.md)。
 
 
 LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks 4.1.2 MicroPython。

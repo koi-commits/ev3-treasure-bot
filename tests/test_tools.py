@@ -31,14 +31,23 @@ class TestParseLogs(unittest.TestCase):
 
     def test_parse_shadow_first_decisions(self):
         text = "\n".join((
-            "SHADOW_RESULT trial=1 label=1 rule=1 model=1 p=0.97 d_early=10 d_late=11 max_infer_ms=3",
-            "SHADOW_RESULT trial=2 label=0 rule=1 model=0 p=0.12 d_early=9 d_late=10 max_infer_ms=4",
+            "SHADOW_RESULT version=v2 trial=1 complete=1 abort_phase=none abort_reason=none pre_label=1 post_label=1 transition=1to1 rule=1 model=1 p_post=0.97 max_infer_ms=3 max_cycle_ms=52",
+            "SHADOW_RESULT version=v2 trial=2 complete=1 abort_phase=none abort_reason=none pre_label=0 post_label=1 transition=0to1 rule=1 model=1 p_post=0.92 max_infer_ms=4 max_cycle_ms=55",
+            "SHADOW_RESULT version=v2 trial=3 complete=0 abort_phase=PL abort_reason=white pre_label=1 post_label=1 transition=1to1 rule=1 model=0 p_post=0.20 max_infer_ms=4 max_cycle_ms=56",
+            "SHADOW_RESULT version=v2 trial=5 complete=1 abort_phase=none abort_reason=none pre_label=0 post_label=0 transition=0to0 rule=0 model=1 p_post=0.99 max_infer_ms=21 max_cycle_ms=52",
+            "SHADOW_ABORT trial=4 phase=initial_back reason=white",
         ))
         report = parse_shadow_logs.summarize(text)
-        self.assertEqual(report["trials"], 2)
-        self.assertEqual(report["rule"]["fp"], 1)
-        self.assertEqual(report["model"]["fp"], 0)
-        self.assertEqual(report["model"]["recall"], 1.0)
+        self.assertEqual(report["attempted_trials"], 5)
+        self.assertEqual(report["complete_trials"], 3)
+        self.assertEqual(report["incomplete_trials"], 1)
+        self.assertEqual(report["abort_lines"], 1)
+        self.assertEqual(report["rule_vs_pre_probe"]["fp"], 1)
+        self.assertEqual(report["model_vs_post_probe"]["fp"], 0)
+        self.assertEqual(report["model_vs_post_probe"]["recall"], 1.0)
+        self.assertEqual(report["model_eligible_trials"], 2)
+        self.assertEqual(report["model_timing_excluded_trials"], 1)
+        self.assertEqual(report["transitions"]["0to1"], 1)
 
 
 if __name__ == "__main__":
