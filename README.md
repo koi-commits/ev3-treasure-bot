@@ -1,8 +1,10 @@
 # EV3 Treasure Bot — 自主寻宝与定点运输
 
+> **2026-11-08 研究更新：** 从端到端 GRU 寻宝失败（0/24）到 841 参数 ContactGRU、独立封存事件审计，再到纯影子模式 Shadow V2.1（64/64 离线回归通过）。今日过程、原始实验与失败结论见 **[AI 研究日记](docs/ai-research-log-2026-11-08.md)**；[实机影子采集操作卡](docs/tap-shadow-runbook.md)。**模型尚未实机验证，也没有接管 Final。**
+
 > **过程存档**：[`开发全过程 / 版本时间线`](docs/development-timeline.md) · [`初版任务方案与五人分工`](docs/project-overview.md) · [`首次实机日志`](docs/session-2026-11-03.md) · [`两轮离线改进`](docs/offline-2026-11-03.md) · [`最终交接`](docs/final-handoff-2026-11-03.md)
 >
-> Git 提交中的早期版本为依据 ZIP 文件**事后导入的快照**，并非完整原始逐次提交历史。最新分支以 Final 版为准；**只有自动寻边与沿边巡线已经获得实机通过**，完整寻宝仍待测试。
+> Git 提交中的早期版本为依据 ZIP 文件**事后导入的快照**，并非完整原始逐次提交历史。最新分支为 Shadow V2.1 研究快照，Final 控制器与已验证巡线基线保持不变；**只有自动寻边与沿边巡线已经获得实机通过**，完整寻宝仍待测试。
 
 > **AI 阶段一/接触复核（2026-11-08）**：端到端低层 GRU 在独立测试为 0/24，不能替代 Final；旧接触模型的 2/50 虚报口径已撤回。当前推荐实验是 Final tap+seat 后的保持探针 GRU，仍只允许影子运行。见 [`docs/ai-learning-2026-11-08.md`](docs/ai-learning-2026-11-08.md)、[`docs/ai-contact-event-2026-11-08.md`](docs/ai-contact-event-2026-11-08.md) 与可直接执行的 [`docs/tap-shadow-runbook.md`](docs/tap-shadow-runbook.md)。
 
@@ -10,6 +12,8 @@
 LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks 4.1.2 MicroPython。
 
 **当前阶段**
+
+- 2026-11-08：AI 接触识别独立审计 + Shadow V2.1 影子实机候选版；64/64 离线测试通过，但**未实机确认**。
 
 - Phase 2：自动寻边与沿边巡线，已于 11-03 **实机通过**。
 - Phase 3：完整任务（色标识别、搜索、确认、推送、交付），代码已完成，并经两轮离线开发（接触式物体仿真 + 真 MicroPython 执行），**全部待 11-10 实机验证**。
