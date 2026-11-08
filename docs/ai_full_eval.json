@@ -1,0 +1,666 @@
+{
+  "checkpoint_metadata": {
+    "bc_loss": 0.417884886264801,
+    "bc_updates": 400,
+    "control_ms": 200,
+    "expert_episodes": 29,
+    "logs": [],
+    "ppo_updates": 0,
+    "seed": 7,
+    "train_seconds": 0.0
+  },
+  "final": {
+    "acceptable": 0.25,
+    "episodes": 24,
+    "false_claim": 0.125,
+    "median_time_s": 300.33050000000003,
+    "object_out": 0.4166666666666667,
+    "success": 0.2916666666666667,
+    "wheel_beyond": 0.2916666666666667,
+    "wheel_on_white": 1.0
+  },
+  "learned": {
+    "acceptable": 0.0,
+    "episodes": 24,
+    "false_claim": 0.0,
+    "median_time_s": 300.1175,
+    "object_out": 0.08333333333333333,
+    "success": 0.0,
+    "wheel_beyond": 0.5,
+    "wheel_on_white": 1.0
+  },
+  "pairs": [
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 282.628,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.13,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 0
+    },
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 145.387,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.067,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 1
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": false,
+        "success": false,
+        "time_s": 301.835,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.18,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 2
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.322,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.194,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 3
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.34,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": true,
+        "success": false,
+        "time_s": 90.887,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 4
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.356,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.039,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 5
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": true,
+        "false_claim": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 64.829,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.047,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 6
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.354,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.157,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 7
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.339,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": true,
+        "ever_captured": true,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": true,
+        "success": false,
+        "time_s": 96.757,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 8
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 301.262,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.017,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 9
+    },
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 87.595,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.079,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 10
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": true,
+        "false_claim": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 185.191,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.165,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 11
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.349,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.062,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 12
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.331,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.138,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 13
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 73.178,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.159,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 14
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.361,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.071,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 15
+    },
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 184.869,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.134,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 16
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.33,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.105,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 17
+    },
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 120.837,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.011,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 18
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.368,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.143,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 19
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.363,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.193,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 20
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": true,
+        "false_claim": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 194.088,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.15,
+        "wheel_beyond": true,
+        "wheel_on_white": true
+      },
+      "seed": 21
+    },
+    {
+      "final": {
+        "acceptable": true,
+        "claim": true,
+        "false_claim": false,
+        "object_out": false,
+        "success": true,
+        "time_s": 246.683,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.089,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 22
+    },
+    {
+      "final": {
+        "acceptable": false,
+        "claim": false,
+        "false_claim": false,
+        "object_out": true,
+        "success": false,
+        "time_s": 300.389,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "learned": {
+        "acceptable": false,
+        "captured": false,
+        "ever_captured": false,
+        "false_claim": false,
+        "lost_count": 0,
+        "marker_seen": true,
+        "object_out": false,
+        "success": false,
+        "time_s": 300.173,
+        "wheel_beyond": false,
+        "wheel_on_white": true
+      },
+      "seed": 23
+    }
+  ],
+  "protocol": {
+    "budget_s": 300,
+    "difficulty": 1.0,
+    "learned_architecture": "Final calib scout + greedy GRU low-level policy",
+    "paired_scenes": true,
+    "split": "test",
+    "world_truth_success": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "bc_loss": 0.417884886264801,
+  "bc_updates": 400,
+  "control_ms": 200,
+  "expert_episodes": 29,
+  "logs": [],
+  "ppo_updates": 0,
+  "seed": 7,
+  "train_seconds": 0.0
+}

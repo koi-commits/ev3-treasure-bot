@@ -1,0 +1,34 @@
+{
+  "debounce_n": 3,
+  "learned": {
+    "f1": 0.570915619389587,
+    "false_confirm_episodes": 2,
+    "false_positive_steps": 621,
+    "light_object_recall": 0.04831932773109244,
+    "negative_episodes": 50,
+    "precision": 0.6057142857142858,
+    "recall": 0.5398981324278438
+  },
+  "load_margin_rule": {
+    "f1": 0.1591604722343682,
+    "false_confirm_episodes": 37,
+    "false_positive_steps": 338,
+    "light_object_recall": 0.01050420168067227,
+    "negative_episodes": 50,
+    "precision": 0.35,
+    "recall": 0.10299943406904358
+  },
+  "test_seed_offset": 1700000,
+  "threshold": 0.95,
+  "train_positive_fraction": 0.06932291666666666,
+  "train_seconds": 77.07407212999988,
+  "validation": {
+    "f1": 0.5876598946576372,
+    "false_confirm_episodes": 1,
+    "false_positive_steps": 578,
+    "light_object_recall": 0.0091324200913242,
+    "negative_episodes": 35,
+    "precision": 0.5746872700515084,
+    "recall": 0.6012317167051578
+  }
+}

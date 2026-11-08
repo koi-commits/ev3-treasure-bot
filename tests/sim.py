@@ -165,6 +165,9 @@ class Sim:
         self.push_load = 0.0
         self.wheel_max_out = 0.0    # 轮子触地点越过白边内沿的最大距离
         self.object_out = False     # 有物体中心越过白边外沿（推出场地）
+        # 可选采样钩子，供学习数据收集使用。默认关闭，既有测试/脚本行为不变。
+        # 签名 hook(sim)；采集器不得改写运动/接触状态。
+        self.step_hook = None
         SIM_HOLDER.sim = self
 
     # ---------------------------------------------------------- surface
@@ -350,6 +353,8 @@ class Sim:
             wx, wyy = self.x - sgn * wy * s_, self.y + sgn * wy * c
             self.wheel_max_out = max(self.wheel_max_out, self._outside_dist(wx, wyy))
         self.t += dt_ms
+        if self.step_hook is not None:
+            self.step_hook(self)
         if self.t > self.max_ms:
             raise SimTimeout()
 
