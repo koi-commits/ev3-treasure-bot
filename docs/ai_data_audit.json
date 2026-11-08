@@ -1,0 +1,131 @@
+{
+  "all_namespaces_disjoint": true,
+  "detected_forbidden_features": [],
+  "feature_contracts": {
+    "passive_contact": [
+      "abs_load_l",
+      "abs_load_r",
+      "load_sum_minus_causal_baseline",
+      "odometry_distance_delta",
+      "odometry_angle_delta",
+      "commanded_speed",
+      "commanded_turn_rate"
+    ],
+    "tap_hold_probe": [
+      "abs_load_l",
+      "abs_load_r",
+      "odometry_step",
+      "tap_progress",
+      "phase_free",
+      "phase_early",
+      "phase_late",
+      "probe_left_arc",
+      "probe_right_arc"
+    ],
+    "tap_seat": [
+      "abs_load_l",
+      "abs_load_r",
+      "odometry_step",
+      "tap_progress",
+      "phase_free",
+      "phase_early",
+      "phase_late"
+    ]
+  },
+  "forbidden_feature_tokens": [
+    "object",
+    "pocket",
+    "truth",
+    "world",
+    "sim_pose",
+    "captured",
+    "friction",
+    "radius",
+    "mass"
+  ],
+  "indices_per_namespace": 4096,
+  "namespaces": {
+    "audit": {
+      "actions": {
+        "count": 4096,
+        "sha256": "805bc259eb9a7402dfc828f76f436b89cb7c78648f81be437a2bb22adeceb17b"
+      },
+      "controller": {
+        "count": 4096,
+        "sha256": "68417d327386c1de44e5ab379c64f931bcab5b61361b68002525461cc8b66fb0"
+      },
+      "physics": {
+        "count": 4096,
+        "sha256": "91c0d91984a98333b6d9bb34475427fc714982007ab85aa4ed2c7e8df1c59c2f"
+      },
+      "scene": {
+        "count": 4096,
+        "sha256": "8e93e893a243e52b8a9a0648c79051815fb2fb52ad788b530c02345d550ff8c1"
+      }
+    },
+    "test": {
+      "actions": {
+        "count": 4096,
+        "sha256": "0e2af0d16f1b7ad9a6395086896f67f0b06bd259f138795685b9a4835a6bed39"
+      },
+      "controller": {
+        "count": 4096,
+        "sha256": "ae9aedd903a9c28928213398f1cbd349230984e4d38ba0e54f7227ff6aabbb39"
+      },
+      "physics": {
+        "count": 4096,
+        "sha256": "a40170702b87a8f0eae1f44ccbffed1198ef7a2e305ddcbae0e78a81a1cdd13b"
+      },
+      "scene": {
+        "count": 4096,
+        "sha256": "91a3f2921966b9cc193fc2a52aac009d014d63c36e83a6730b60a270a5aeaf90"
+      }
+    },
+    "train": {
+      "actions": {
+        "count": 4096,
+        "sha256": "9bc155c796e7522b14e531e4fc2053d3847039d79cb645e263f586ebbeb42fb9"
+      },
+      "controller": {
+        "count": 4096,
+        "sha256": "c49e5ad6f63ea7b5ebe8e35edb01de10509d509de9cc090b8584ae46a5e7d83e"
+      },
+      "physics": {
+        "count": 4096,
+        "sha256": "b28f6cd2ee3cb226f07b9b94a511a50e533327799048bebf675058d33e095a24"
+      },
+      "scene": {
+        "count": 4096,
+        "sha256": "85e922e077899367f14413814217198ff5db021a974e04bf7af81fad04e028e4"
+      }
+    },
+    "val": {
+      "actions": {
+        "count": 4096,
+        "sha256": "958429426f81d802beb7930ba8e36be99ad2dde3a4cd8c35cba22404d69a6a13"
+      },
+      "controller": {
+        "count": 4096,
+        "sha256": "4c5a79db058006316d4079f80d7609092a334c0aa6d9b13308aaa1271938812b"
+      },
+      "physics": {
+        "count": 4096,
+        "sha256": "4eaf99498e6e5c1c6f1acf0515ec5f26e6dcdf17d9bcd67314684c58884d4474"
+      },
+      "scene": {
+        "count": 4096,
+        "sha256": "daa0a7fd5bb78dfa5bb888f41009d77c4e62e0bf4370c4e7c9641e4866cf7ad2"
+      }
+    }
+  },
+  "pc_ev3_shared_feature_function": "src/contact_features.py:tap_probe_feature",
+  "seed_protocol": "sha256(ev3-ai-v2|split|index|stream), 31-bit",
+  "total_seeds": 65536,
+  "truth_available_to_inference": false,
+  "truth_usage": [
+    "training labels",
+    "reward shaping",
+    "offline evaluation"
+  ],
+  "unique_seeds": 65536
+}

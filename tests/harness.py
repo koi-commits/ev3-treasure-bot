@@ -15,7 +15,8 @@ for p in (os.path.join(HERE, "mock"), HERE, SRC):
 
 PROJECT_MODULES = ("config", "hardware", "common", "edge", "fsm", "sensing",
                    "mission", "demo_edge", "calibrate_marker", "learned_capture",
-                   "contact_inference", "contact_weights")
+                   "contact_inference", "contact_weights", "probe_tap_shadow",
+                   "tap_probe_weights", "contact_features")
 
 
 def fresh_config(**overrides):

@@ -1,0 +1,2831 @@
+{
+  "operating_point": {
+    "debounce_n": 12,
+    "threshold": 0.6
+  },
+  "protocol": {
+    "feature_contract": [
+      "abs_load_l",
+      "abs_load_r",
+      "load_sum_minus_causal_baseline",
+      "odometry_distance_delta",
+      "odometry_angle_delta",
+      "commanded_speed",
+      "commanded_turn_rate"
+    ],
+    "hard_negative_weight": 5.0,
+    "paired_test_specs": true,
+    "primary_metric": "world truth at first controller confirmation",
+    "sample_ms": 100,
+    "test_split_used_for_tuning": false
+  },
+  "test_final_tap_seat": {
+    "correct_first_triggers": 22,
+    "episodes": 180,
+    "event_recall": 0.3728813559322034,
+    "first_trigger_precision": 0.6470588235294118,
+    "median_trigger_ms": 6905.0,
+    "missed_positive_episodes": 37,
+    "positive_episodes": 59,
+    "rows": [
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 43.393022261049595,
+        "d_late": 45.64459373316508,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8670.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 29.71337320090624,
+        "d_late": 30.602082812685744,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 5290.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 14.192488568861066,
+        "d_late": 11.332639332334928,
+        "ever_pocket": true,
+        "suspects": 2,
+        "trigger_ms": 29010.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 43.46188745949693,
+        "d_late": 45.876608024670496,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6620.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 26.98389608091022,
+        "d_late": 26.82346192459172,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 7930.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 23.378969203552614,
+        "d_late": 18.78446074642322,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 7040.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 28.628596824974757,
+        "d_late": 30.276206115998313,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": 5890.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 34.37414227146506,
+        "d_late": 37.127508095666,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8140.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 46.903026385718555,
+        "d_late": 46.08348318048193,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": 6750.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 23.54417594669078,
+        "d_late": 27.680676168910537,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6420.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 25.260719310620985,
+        "d_late": 21.7646148030517,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8320.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 48.98580292229206,
+        "d_late": 48.016389719629366,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6070.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 47.22224984389529,
+        "d_late": 40.22848971564242,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 7140.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 2,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 23.495677907930272,
+        "d_late": 25.640059232481875,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8450.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 17.458382906504937,
+        "d_late": 18.385251478543196,
+        "ever_pocket": true,
+        "suspects": 2,
+        "trigger_ms": 18080.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 34.49394961513128,
+        "d_late": 32.183306759087365,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6840.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 22.227041016058692,
+        "d_late": 26.41033113128453,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 5620.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 41.82265179012193,
+        "d_late": 40.41655759791731,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 5090.0,
+        "triggered": true
+      },
+      {
+        "correct": true,
+        "d_early": 13.663799774513656,
+        "d_late": 20.308552809526,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 5090.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 10.175018882351836,
+        "d_late": 11.928722937869232,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 11500.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 14.049939298850596,
+        "d_late": 14.956551345494795,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 7190.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 43.91536312510039,
+        "d_late": 38.697440904246015,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6960.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 28.96198263040992,
+        "d_late": 28.305055732286554,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6260.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 38.769912554769235,
+        "d_late": 37.06452095596356,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8090.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 42.58981214319619,
+        "d_late": 41.98032975340593,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6610.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 40.71023621014361,
+        "d_late": 38.8131538119578,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8110.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 46.54157597435586,
+        "d_late": 45.758085970625096,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 5300.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 20.07865702983444,
+        "d_late": 17.40895380926576,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 13220.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 29.750927052487143,
+        "d_late": 26.17909160234464,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 8390.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 3,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 27.65314294258932,
+        "d_late": 19.886556497832906,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": 5660.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 4,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": true,
+        "d_early": 38.586050390143136,
+        "d_late": 35.73162171694066,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 7760.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 35.88487547580329,
+        "d_late": 31.474927809072717,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": 5320.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "d_early": 31.775190346210827,
+        "d_late": 32.988708846355756,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6850.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 1,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "d_early": 25.10762434622115,
+        "d_late": 25.975105610425565,
+        "ever_pocket": true,
+        "suspects": 1,
+        "trigger_ms": 6020.0,
+        "triggered": true
+      },
+      {
+        "correct": false,
+        "ever_pocket": true,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      },
+      {
+        "correct": false,
+        "ever_pocket": false,
+        "suspects": 0,
+        "trigger_ms": null,
+        "triggered": false
+      }
+    ],
+    "triggered_episodes": 34,
+    "wrong_or_early_first_triggers": 12
+  },
+  "test_learned": {
+    "correct_first_triggers": 2,
+    "episodes": 180,
+    "event_recall": 0.03225806451612903,
+    "first_trigger_precision": 0.5,
+    "light_event_recall": 0.0,
+    "median_correct_delay_ms": 14300.0,
+    "missed_positive_episodes": 60,
+    "positive_episodes": 62,
+    "rows": [
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 0,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 1,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 2,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 3,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 4,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 5,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 6,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 7,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 8,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 9,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 10,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 11,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 12,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 13,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 14,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 15,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 16,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 17,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 18,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 19,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 20,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 21,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 22,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 23,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 24,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 25,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 26,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 27,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 28,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 29,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 30,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": true,
+        "ever_pocket": true,
+        "index": 31,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": 109
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 32,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 33,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 34,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 35,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 36,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 37,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 38,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 39,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 40,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 41,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 42,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 43,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 44,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 45,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 46,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 47,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 48,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 49,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 50,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 51,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 52,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 53,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 54,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 55,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 56,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 57,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": 190
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 58,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 59,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 60,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 61,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 62,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 63,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 64,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 65,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 66,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 67,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 68,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 69,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 70,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 71,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 72,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 73,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 74,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 75,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 76,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 77,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 78,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 79,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 80,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 81,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 82,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 83,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 84,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 85,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 86,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 87,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 88,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 89,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 90,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 91,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 92,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 93,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 94,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 95,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 96,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 97,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 98,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 99,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 100,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 101,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 102,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 103,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 104,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 105,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 106,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 107,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 108,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 109,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 110,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 111,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": true,
+        "ever_pocket": true,
+        "index": 112,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": 232
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 113,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 114,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 115,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 116,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 117,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 118,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 119,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 120,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 121,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 122,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 123,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 124,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 125,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 126,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 127,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 128,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 129,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 130,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 131,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 132,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 133,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 134,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 135,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 136,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 137,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 138,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 139,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 140,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 141,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 142,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 143,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 144,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 145,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 146,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 147,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 148,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": 122
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 149,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 150,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 151,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 152,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 153,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 154,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 155,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 156,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 157,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 158,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 159,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 160,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 161,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 162,
+        "kind": "immovable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 163,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 164,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 165,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 166,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 167,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 168,
+        "kind": "none",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 169,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 170,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 171,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 172,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 173,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 174,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 175,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 176,
+        "kind": "movable",
+        "light": false,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": true,
+        "index": 177,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 178,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      },
+      {
+        "correct_at_first_trigger": false,
+        "ever_pocket": false,
+        "index": 179,
+        "kind": "movable",
+        "light": true,
+        "trigger_index": null
+      }
+    ],
+    "triggered_episodes": 4,
+    "wrong_or_early_first_triggers": 2
+  },
+  "train_positive_fraction": 0.18625457875457876,
+  "train_seconds": 114.21082471400041,
+  "validation_learned": {
+    "correct_first_triggers": 1,
+    "episodes": 140,
+    "event_recall": 0.021739130434782608,
+    "first_trigger_precision": 1.0,
+    "light_event_recall": 0.0,
+    "median_correct_delay_ms": 19400.0,
+    "missed_positive_episodes": 45,
+    "positive_episodes": 46,
+    "triggered_episodes": 1,
+    "wrong_or_early_first_triggers": 0
+  }
+}

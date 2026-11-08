@@ -10,6 +10,7 @@ from sim import Sim, rect_arena_marker
 
 sys.path.insert(0, os.path.join(os.path.dirname(harness.HERE), "tools"))
 import parse_logs  # noqa: E402
+import parse_shadow_logs  # noqa: E402
 
 
 class TestParseLogs(unittest.TestCase):
@@ -27,6 +28,17 @@ class TestParseLogs(unittest.TestCase):
         rows = parse_logs.parse(os.path.join(d, "demo_edge_1.txt"))
         self.assertEqual(rows[0]["kind"], "demo_edge")
         self.assertIn("segments=3", rows[0]["result"])
+
+    def test_parse_shadow_first_decisions(self):
+        text = "\n".join((
+            "SHADOW_RESULT trial=1 label=1 rule=1 model=1 p=0.97 d_early=10 d_late=11 max_infer_ms=3",
+            "SHADOW_RESULT trial=2 label=0 rule=1 model=0 p=0.12 d_early=9 d_late=10 max_infer_ms=4",
+        ))
+        report = parse_shadow_logs.summarize(text)
+        self.assertEqual(report["trials"], 2)
+        self.assertEqual(report["rule"]["fp"], 1)
+        self.assertEqual(report["model"]["fp"], 0)
+        self.assertEqual(report["model"]["recall"], 1.0)
 
 
 if __name__ == "__main__":

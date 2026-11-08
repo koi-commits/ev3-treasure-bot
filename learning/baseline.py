@@ -37,7 +37,7 @@ def _config(marker_surface, mission_max_ms):
 
 
 def run_final_scenario(scenario, mission_max_ms=300000, collect=False):
-    sim = Sim(W=1200, H=900, start=scenario["start"], seed=scenario["seed"],
+    sim = Sim(W=1200, H=900, start=scenario["start"], seed=scenario["sim_seed"],
               buttons=press_right(), markers=[scenario["marker"]],
               objects=[scenario["object"]], max_ms=mission_max_ms + 10000,
               **scenario["sim_kw"])
@@ -60,7 +60,7 @@ def run_final_scenario(scenario, mission_max_ms=300000, collect=False):
         sim.step_hook = sample
 
     marker_surface = scenario["marker"][4]
-    out, sim = run_script("mission", sim, seed=scenario["seed"], allow_timeout=True,
+    out, sim = run_script("mission", sim, seed=scenario["policy_seed"], allow_timeout=True,
                           **_config(marker_surface, mission_max_ms))
     sim.step_hook = None
     o = sim.objects[0]

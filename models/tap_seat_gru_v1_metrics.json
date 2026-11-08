@@ -1,0 +1,3578 @@
+{
+  "operating_point": {
+    "threshold": 0.7
+  },
+  "protocol": {
+    "feature_contract": [
+      "abs_load_l",
+      "abs_load_r",
+      "odometry_step",
+      "tap_progress",
+      "phase_free",
+      "phase_early",
+      "phase_late"
+    ],
+    "primary_metric": "world truth at first confirmation handed to delivery",
+    "same_tap_attempts_for_rule_and_model": true,
+    "test_attempts": 268,
+    "test_split_used_for_tuning": false,
+    "train_attempts": 896,
+    "validation_attempts": 275
+  },
+  "test_final_fixed_tap_verdict": {
+    "correct_first_triggers": 28,
+    "episodes": 220,
+    "event_recall": 0.875,
+    "first_trigger_precision": 0.6829268292682927,
+    "missed_positive_episodes": 4,
+    "positive_episodes": 32,
+    "rows": [
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 0,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 1,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 2,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 3,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 4,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 5,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 6,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 7,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 8,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 9,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 10,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 11,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 12,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 13,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 14,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 15,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 16,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 17,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 18,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 19,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 20,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 21,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 22,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 23,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 24,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 25,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 26,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 27,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 1,
+        "index": 28,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 29,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 30,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 31,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 32,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 33,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 34,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 4,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 35,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 36,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 37,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 38,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 39,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 40,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 41,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 42,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 43,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 44,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 45,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 46,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 47,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 48,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 49,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 50,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 51,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 52,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 53,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 54,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 55,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 56,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 57,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 58,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 59,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 60,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 61,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 62,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 63,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 64,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 65,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 66,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 67,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 68,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 69,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 70,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 71,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 72,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 73,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 74,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 75,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 76,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 77,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 78,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 79,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 80,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 81,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 82,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 83,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 84,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 85,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 86,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 87,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 88,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 89,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 90,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 91,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 92,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 4,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 1,
+        "index": 93,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 94,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 95,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 96,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 97,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 98,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 99,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 100,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 101,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 102,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 103,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 104,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 105,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 106,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 107,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 108,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 109,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 110,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 111,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 112,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 113,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 114,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 1,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 115,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 116,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 117,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 118,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 119,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 120,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 121,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 122,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 123,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 124,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 125,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 126,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 127,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 128,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 129,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 130,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 131,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 132,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 133,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 134,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 135,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 136,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 137,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 138,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 139,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 140,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 141,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 142,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 143,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 144,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 145,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 146,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 147,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 148,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 149,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 150,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 151,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 152,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 153,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 154,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 155,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 156,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 157,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 158,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 159,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 160,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 161,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 162,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 163,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 164,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 165,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 166,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 167,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 168,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 169,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 170,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 171,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 172,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 173,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 174,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 175,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 176,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 177,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 178,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 179,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 180,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 181,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 182,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 183,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 184,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 185,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 186,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 187,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 188,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 189,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 190,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 191,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 192,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 193,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 194,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 195,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 196,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 197,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 198,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 199,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 200,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 201,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 202,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 203,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 204,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 205,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 206,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 207,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 208,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 209,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 210,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": 0,
+        "index": 211,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 212,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 213,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 214,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 215,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 216,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 217,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 218,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": true,
+        "first_confirm_attempt": 0,
+        "index": 219,
+        "kind": "movable"
+      }
+    ],
+    "triggered_episodes": 41,
+    "wrong_or_early_first_triggers": 13
+  },
+  "test_learned_tap_sequence": {
+    "correct_first_triggers": 0,
+    "episodes": 220,
+    "event_recall": 0.0,
+    "first_trigger_precision": 0.0,
+    "missed_positive_episodes": 32,
+    "positive_episodes": 32,
+    "rows": [
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 0,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 1,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 2,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 3,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 4,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 5,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 6,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 7,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 8,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 9,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 10,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 11,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 12,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 13,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 14,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 15,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 16,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 17,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 18,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 19,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 20,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 21,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 22,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 23,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 24,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 25,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 26,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 27,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 28,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 29,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 30,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 31,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 32,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 33,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 34,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 35,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 36,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 37,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 38,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 39,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 40,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 41,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 42,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 43,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 44,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 45,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 46,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 47,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 48,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 49,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 50,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 51,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 52,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 53,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 54,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 55,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 56,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 57,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 58,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 59,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 60,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 61,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 62,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 63,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 64,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 65,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 66,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 67,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 68,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 69,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 70,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 71,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 72,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 73,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 74,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 75,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 76,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 77,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 78,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 79,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 80,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 81,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 82,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 83,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 84,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 85,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 86,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 87,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 88,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 89,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 90,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 91,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 92,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 93,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 94,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 95,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 96,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 97,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 98,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 99,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 100,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 101,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 102,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 103,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 104,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 105,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 106,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 107,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 108,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 109,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 110,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 111,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 112,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 113,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 114,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 115,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 116,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 117,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 118,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 119,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 120,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 121,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 122,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 123,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 124,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 125,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 126,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 127,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 128,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 129,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 130,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 131,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 132,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 133,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 134,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 135,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 136,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 137,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 138,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 139,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 140,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 141,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 142,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 143,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 144,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 145,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 146,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 147,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 148,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 149,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 150,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 151,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 152,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 153,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 154,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 155,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 156,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 157,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 158,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 159,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 160,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 161,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 162,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 163,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 164,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 165,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 166,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 167,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 168,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 169,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 170,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 171,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 172,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 173,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 174,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 175,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 176,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 177,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 178,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 179,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 4,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 180,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 181,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 182,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 183,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 184,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 185,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 186,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 187,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 188,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 189,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 190,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 191,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 192,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 3,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 193,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 194,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 195,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 196,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 197,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 198,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 199,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 200,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 201,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 202,
+        "kind": "immovable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 203,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 204,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 205,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 6,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 206,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 207,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 208,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 209,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 210,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 1,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 211,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 5,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 212,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 213,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 214,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 215,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 216,
+        "kind": "none"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 217,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": false,
+        "attempts": 0,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 218,
+        "kind": "movable"
+      },
+      {
+        "any_true_attempt": true,
+        "attempts": 2,
+        "correct_at_first_confirm": false,
+        "first_confirm_attempt": null,
+        "index": 219,
+        "kind": "movable"
+      }
+    ],
+    "triggered_episodes": 0,
+    "wrong_or_early_first_triggers": 0
+  },
+  "train_positive_fraction": 0.5066964285714286,
+  "train_seconds": 112.45880171499994,
+  "validation_learned": {
+    "correct_first_triggers": 1,
+    "episodes": 220,
+    "event_recall": 0.02857142857142857,
+    "first_trigger_precision": 1.0,
+    "missed_positive_episodes": 34,
+    "positive_episodes": 35,
+    "triggered_episodes": 1,
+    "wrong_or_early_first_triggers": 0
+  }
+}

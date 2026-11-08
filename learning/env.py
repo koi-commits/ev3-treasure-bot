@@ -16,6 +16,8 @@ import sys
 
 import numpy as np
 
+from .seeding import derive_seed
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(ROOT, "tests")
 SRC = os.path.join(ROOT, "src")
@@ -50,8 +52,7 @@ def _normal_start(rng):
 
 def make_scenario(seed: int, split: str = "train", difficulty: float = 1.0):
     """Create a deterministic scene. Split offsets guarantee disjoint cases."""
-    offsets = {"train": 10_000, "val": 2_000_000, "test": 4_000_000}
-    rng = random.Random(offsets[split] + int(seed))
+    rng = random.Random(derive_seed(split, seed, "scene"))
     d = max(0.0, min(1.0, float(difficulty)))
 
     if d < 0.20:
@@ -95,7 +96,10 @@ def make_scenario(seed: int, split: str = "train", difficulty: float = 1.0):
         "accel": rng.uniform(550, 900) if spread else 750.0,
         "brake_decel": rng.uniform(1400, 2400) if spread else 2000.0,
     }
-    return {"seed": int(seed), "start": start, "marker": marker,
+    return {"seed": int(seed), "split": split,
+            "sim_seed": derive_seed(split, seed, "physics"),
+            "policy_seed": derive_seed(split, seed, "controller"),
+            "start": start, "marker": marker,
             "object": obj, "sim_kw": sim_kw, "side": side}
 
 
@@ -192,7 +196,7 @@ class TreasureEnv:
             self.seed = int(seed)
         self.scenario = scenario or make_scenario(self.seed, self.split, self.difficulty)
         sc = self.scenario
-        self.sim = Sim(W=W, H=H, start=sc["start"], seed=sc["seed"],
+        self.sim = Sim(W=W, H=H, start=sc["start"], seed=sc["sim_seed"],
                        markers=[sc["marker"]], objects=[sc["object"]],
                        max_ms=self.max_steps * CONTROL_MS + 210000, **sc["sim_kw"])
         self.observer = OdomObserver()
@@ -255,7 +259,7 @@ class TreasureEnv:
             "SIGNATURES": {"floor": sig(FLOOR), "white": sig(WHITE),
                            "finish": sig(marker_surface)},
         }
-        self.scout_out, _ = run_script("mission", self.sim, seed=self.scenario["seed"],
+        self.scout_out, _ = run_script("mission", self.sim, seed=self.scenario["policy_seed"],
                                        allow_timeout=True, **cfg)
         self.sim.step_hook = None
         self.sim.cmd_stop("brake")

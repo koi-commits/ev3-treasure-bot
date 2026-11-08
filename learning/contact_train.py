@@ -19,6 +19,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from .seeding import derive_seed
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(ROOT, "tests")
 if TESTS not in sys.path:
@@ -47,8 +49,8 @@ class ContactGRU(nn.Module):
 
 
 def generate_episode(seed, steps=320, split="train"):
-    offset = {"train": 700_000, "val": 1_200_000, "test": 1_700_000}[split]
-    rng = random.Random(offset + seed)
+    rng = random.Random(derive_seed(split, seed, "scene"))
+    actions_rng = random.Random(derive_seed(split, seed, "actions"))
     has_object = rng.random() < 0.78
     start = (1000.0, 1000.0, 0.0)
     objects = []
@@ -60,7 +62,8 @@ def generate_episode(seed, steps=320, split="train"):
             "r": rng.uniform(20, 35),
             "load": rng.uniform(6, 14) if light else rng.uniform(15, 45),
         }]
-    sim = Sim(W=2000, H=2000, start=start, objects=objects, seed=seed,
+    sim = Sim(W=2000, H=2000, start=start, objects=objects,
+              seed=derive_seed(split, seed, "physics"),
               noise=rng.uniform(0.1, 0.5), load_noise=rng.uniform(1.5, 6.0),
               contact_mu=rng.uniform(0.08, 0.65), accel=rng.uniform(500, 950),
               odo_dist_scale=rng.uniform(0.96, 1.04),
@@ -70,9 +73,9 @@ def generate_episode(seed, steps=320, split="train"):
     baseline = None
     cmd_v, cmd_w = 170.0, 0.0
     for t in range(steps):
-        if t % rng.randint(15, 35) == 0:
-            cmd_v = rng.choice((100.0, 160.0, 220.0))
-            cmd_w = rng.choice((-45.0, -20.0, 0.0, 20.0, 45.0))
+        if t % actions_rng.randint(15, 35) == 0:
+            cmd_v = actions_rng.choice((100.0, 160.0, 220.0))
+            cmd_w = actions_rng.choice((-45.0, -20.0, 0.0, 20.0, 45.0))
         # Some episodes deliberately release and re-contact, forcing temporal
         # reasoning rather than a permanent episode label.
         if has_object and t > 150 and t % 90 in range(0, 8):

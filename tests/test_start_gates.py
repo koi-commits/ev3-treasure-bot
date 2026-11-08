@@ -28,6 +28,9 @@ class TestExplicitStart(unittest.TestCase):
     def test_learned_capture_does_not_auto_start(self):
         self.assert_stationary_without_right('learned_capture')
 
+    def test_tap_shadow_does_not_auto_start(self):
+        self.assert_stationary_without_right('probe_tap_shadow')
+
     def test_motor_test_waits_for_actions(self):
         R = Button.RIGHT
         s = Sim(start=(500, 400, 0), max_ms=90000, buttons=[
