@@ -32,7 +32,7 @@ PROBE_STAGE_MS = 500
 PROBE_TIMEOUT_MS = 1200
 NO_PROGRESS_MS = 500
 MIN_PROGRESS_MM = 1
-SCRIPT_VERSION = "tap-shadow-v2"
+SCRIPT_VERSION = "tap-shadow-v2.1"
 
 
 def load_pair():
@@ -41,6 +41,34 @@ def load_pair():
 
 async def is_white():
     return await color.reflection() > config.edge_threshold()
+
+
+def battery_gate(index, condition, phase, checkpoint):
+    """Refuse an authorization when the resting battery is below the limit."""
+    battery_mv = ev3.battery.voltage()
+    print("SHADOW_BATTERY trial={} condition={} phase={} checkpoint={} battery_mv={} minimum_mv={}".format(
+        index, condition, phase, checkpoint, battery_mv,
+        config.LOW_BATTERY_MV))
+    if battery_mv >= config.LOW_BATTERY_MV:
+        return True
+    drive.brake()
+    print("SHADOW_ABORT trial={} condition={} phase={} reason=low_battery battery_mv={}".format(
+        index, condition, phase, battery_mv))
+    print("SHADOW_SESSION_ABORT reason=low_battery trial={} condition={} phase={} checkpoint={} battery_mv={} minimum_mv={}".format(
+        index, condition, phase, checkpoint, battery_mv,
+        config.LOW_BATTERY_MV))
+    return False
+
+
+async def authorize_motion(index, condition, phase, prompt):
+    """Battery-gated press-and-release authorization for one motion block."""
+    drive.brake()
+    if not battery_gate(index, condition, phase, "before_prompt"):
+        return False
+    await wait_for_button(ev3, prompt=prompt)
+    # The operator may wait indefinitely at the prompt, so check again after
+    # release and immediately before any motor command.
+    return battery_gate(index, condition, phase, "after_release")
 
 
 async def label_truth(stage):
@@ -278,8 +306,11 @@ async def one_trial(index, condition):
     rule = int(ok1 and ok2)
     pre_label = await label_truth("PRE_PROBE")
 
-    # Labeling may put hands near the robot: require a fresh motion authorization.
-    await wait_for_button(ev3, prompt="CLEAR HANDS: RIGHT PROBE")
+    # Labeling may put hands near the robot: require a fresh, battery-gated
+    # motion authorization. Low voltage ends the whole session safely.
+    if not await authorize_motion(index, condition, "probe_authorize",
+                                  "CLEAR HANDS: RIGHT PROBE"):
+        return "session_abort"
     left_probe = await probe_stage(model, rows, tap["last_d"], -20, "PL", True, False)
     probe = left_probe
     if left_probe["abort"] is None:
@@ -302,6 +333,13 @@ async def one_trial(index, condition):
         pre_label, post_label, transition, rule,
         int(complete and p_post >= weights.THRESHOLD), tap["p_pre"], p_post,
         d1, d2, max_infer_ms, max_cycle_ms, ev3.battery.voltage()))
+    if transition == "1to0":
+        print("SHADOW_SAFETY_FAIL trial={} condition={} event=object_drop transition=1to0 complete={} action=session_abort".format(
+            index, condition, complete))
+        print("SHADOW_SESSION_ABORT reason=object_drop trial={} condition={} transition=1to0 complete={}".format(
+            index, condition, complete))
+        return "safety_failure"
+    return "continue"
 
 
 async def main():
@@ -316,6 +354,7 @@ async def main():
         print("SHADOW_SESSION_ABORT reason=low_battery battery_mv={} minimum_mv={}".format(
             battery_mv, config.LOW_BATTERY_MV))
         drive.brake()
+        ev3.light.on(Color.RED)
         return
     try:
         load_pair()
@@ -323,16 +362,23 @@ async def main():
         log(ev3, "load() failed", repr(e))
         return
     for trial, condition in enumerate(TRIAL_PLAN, 1):
-        await wait_for_button(ev3, prompt="{} {} RIGHT TAP".format(trial, condition))
+        if not await authorize_motion(
+                trial, condition, "tap_authorize",
+                "{} {} RIGHT TAP".format(trial, condition)):
+            ev3.light.on(Color.RED)
+            return
         ev3.light.on(Color.ORANGE)
         try:
-            await one_trial(trial, condition)
+            outcome = await one_trial(trial, condition)
         except Exception as e:
             print("SHADOW_FATAL trial={} condition={} error={}".format(
                 trial, condition, repr(e)))
             return
         finally:
             drive.brake()
+        if outcome in ("session_abort", "safety_failure"):
+            ev3.light.on(Color.RED)
+            return
         ev3.light.on(Color.GREEN)
     log(ev3, "SHADOW DONE")
 

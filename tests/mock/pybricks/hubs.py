@@ -44,7 +44,7 @@ class _Screen:
 
 class _Battery:
     def voltage(self):
-        return 7480
+        return SIM_HOLDER.sim.battery_voltage()
 
     def current(self):
         return 150

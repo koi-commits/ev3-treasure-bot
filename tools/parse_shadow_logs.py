@@ -33,25 +33,39 @@ def _model_timing_ok(row):
         return False
 
 
+def _transition_counts(rows):
+    counts = {name: 0 for name in ("0to0", "0to1", "1to0", "1to1")}
+    unknown = 0
+    for row in rows:
+        transition = row.get("transition")
+        if transition is None:
+            pre = row.get("pre_label")
+            post = row.get("post_label")
+            transition = pre + "to" + post if pre is not None and post is not None else None
+        if transition in counts:
+            counts[transition] += 1
+        else:
+            unknown += 1
+    return counts, unknown
+
+
 def summarize(text):
     aborts = [_fields(line) for line in text.splitlines()
               if line.startswith("SHADOW_ABORT ")]
     results = [_fields(line) for line in text.splitlines()
                if line.startswith("SHADOW_RESULT ")]
-    complete = [r for r in results if r.get("complete", "1") == "1"]
-    for row in complete:  # legacy V1 used one label for both decisions
+    for row in results:  # legacy V1 used one label for both decisions
         if "label" in row:
             row.setdefault("pre_label", row["label"])
             row.setdefault("post_label", row["label"])
-    transitions = {name: 0 for name in ("0to0", "0to1", "1to0", "1to1")}
-    for row in complete:
-        transition = row.get("transition", row["pre_label"] + "to" + row["post_label"])
-        if transition in transitions:
-            transitions[transition] += 1
+    complete = [r for r in results if r.get("complete", "1") == "1"]
+    incomplete = [r for r in results if r.get("complete", "1") != "1"]
+    transitions, unknown_transitions = _transition_counts(results)
+    complete_transitions, _ = _transition_counts(complete)
+    incomplete_transitions, _ = _transition_counts(incomplete)
     inference = [int(r["max_infer_ms"]) for r in complete if "max_infer_ms" in r]
     cycles = [int(r["max_cycle_ms"]) for r in complete if "max_cycle_ms" in r]
     model_eligible = [r for r in complete if _model_timing_ok(r)]
-    incomplete = [r for r in results if r.get("complete", "1") != "1"]
     reasons = [a.get("reason", "unknown") for a in aborts]
     reasons += [r.get("abort_reason", "unknown") for r in incomplete]
     conditions = {}
@@ -71,6 +85,11 @@ def summarize(text):
         "model_timing_limits_ms": {"infer": MODEL_MAX_INFER_MS,
                                    "cycle": MODEL_MAX_CYCLE_MS},
         "transitions": transitions,
+        "complete_transitions": complete_transitions,
+        "incomplete_transitions": incomplete_transitions,
+        "drop_safety_events": transitions["1to0"],
+        "incomplete_drop_safety_events": incomplete_transitions["1to0"],
+        "unknown_transition_results": unknown_transitions,
         "complete_by_condition": conditions,
         "max_infer_ms": max(inference) if inference else None,
         "max_cycle_ms": max(cycles) if cycles else None,

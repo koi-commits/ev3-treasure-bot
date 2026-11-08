@@ -53,18 +53,23 @@ class TestExplicitStart(unittest.TestCase):
         out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
         self.assertIn('SHADOW_ABORT trial=1 condition=EMPTY phase=tap_forward reason=stalled', out)
 
-    def test_tap_shadow_checks_white_during_probe_and_keeps_two_labels(self):
+    def test_tap_shadow_incomplete_drop_stops_session(self):
         R = Button.RIGHT
+        L = Button.LEFT
         s = Sim(W=700, H=900, start=(500, 400, 0), max_ms=8000, buttons=[
             (100, 300, R),       # authorize tap
             (4400, 4600, R),     # PRE label = captured
             (5000, 5200, R),     # separate probe authorization
-            (5900, 6100, R),     # POST label
+            (5900, 6100, L),     # POST label = dropped
+            (6500, 6700, R),     # must not authorize a second trial
         ])
         out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
         self.assertIn('complete=0', out)
         self.assertIn('abort_phase=PL abort_reason=white', out)
-        self.assertIn('pre_label=1 post_label=1 transition=1to1', out)
+        self.assertIn('pre_label=1 post_label=0 transition=1to0', out)
+        self.assertIn('SHADOW_SAFETY_FAIL trial=1 condition=EMPTY event=object_drop transition=1to0 complete=0 action=session_abort', out)
+        self.assertIn('SHADOW_SESSION_ABORT reason=object_drop', out)
+        self.assertNotIn('2 EMPTY RIGHT TAP', out)
 
     def test_tap_shadow_aborts_probe_stall(self):
         R = Button.RIGHT
@@ -90,8 +95,48 @@ class TestExplicitStart(unittest.TestCase):
         out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
         self.assertIn('SHADOW_LABEL stage=PRE_PROBE label=1', out)
         self.assertIn('SHADOW_LABEL stage=POST_PROBE label=1', out)
-        self.assertIn('SHADOW_RESULT version=tap-shadow-v2 trial=1 condition=EMPTY complete=1', out)
+        self.assertIn('SHADOW_RESULT version=tap-shadow-v2.1 trial=1 condition=EMPTY complete=1', out)
         self.assertIn('transition=1to1', out)
+
+    def test_tap_shadow_complete_drop_stops_session(self):
+        R = Button.RIGHT
+        L = Button.LEFT
+        s = Sim(start=(500, 400, 0), max_ms=9000, buttons=[
+            (100, 300, R),
+            (4400, 4600, R),
+            (5000, 5200, R),
+            (6800, 7000, L),
+            (7500, 7700, R),     # must not authorize a second trial
+        ])
+        out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
+        self.assertIn('complete=1', out)
+        self.assertIn('transition=1to0', out)
+        self.assertIn('SHADOW_SAFETY_FAIL trial=1 condition=EMPTY event=object_drop transition=1to0 complete=1 action=session_abort', out)
+        self.assertNotIn('2 EMPTY RIGHT TAP', out)
+
+    def test_tap_shadow_rechecks_battery_after_tap_authorization(self):
+        R = Button.RIGHT
+        s = Sim(start=(500, 400, 0), max_ms=1500,
+                battery_events=[(250, 6999)],
+                buttons=[(100, 300, R)])
+        out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
+        self.assertIn('phase=tap_authorize checkpoint=after_release battery_mv=6999', out)
+        self.assertIn('SHADOW_SESSION_ABORT reason=low_battery trial=1 condition=EMPTY phase=tap_authorize', out)
+        self.assertAlmostEqual(s.dist_acc, 0, places=3)
+
+    def test_tap_shadow_rechecks_battery_before_probe_authorization(self):
+        R = Button.RIGHT
+        s = Sim(start=(500, 400, 0), max_ms=6500,
+                battery_events=[(4500, 6999)], buttons=[
+                    (100, 300, R),
+                    (4400, 4600, R),
+                    (5000, 5200, R),
+                ])
+        out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
+        self.assertIn('phase=probe_authorize checkpoint=before_prompt battery_mv=6999', out)
+        self.assertIn('SHADOW_SESSION_ABORT reason=low_battery trial=1 condition=EMPTY phase=probe_authorize', out)
+        self.assertNotIn('phase=PL ', out)
+        self.assertNotIn('SHADOW_RESULT', out)
 
     def test_motor_test_waits_for_actions(self):
         R = Button.RIGHT

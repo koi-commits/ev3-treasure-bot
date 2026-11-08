@@ -113,7 +113,8 @@ class Sim:
                  accel=750.0, turn_accel=750.0, odo_dist_scale=1.0, odo_turn_scale=1.0,
                  read_cost_ms=1, buttons=(), seed=0, max_ms=400000,
                  geom=None, contact_mu=0.3, load_noise=2.5, coast_decel=900.0, brake_decel=2000.0,
-                 legacy_objects=False, sensor_lat=0.0):
+                 legacy_objects=False, sensor_lat=0.0, battery_mv=7480,
+                 battery_events=()):
         self.W, self.H, self.band = W, H, band
         self.outside = FLOOR if outside == "floor" else WHITE
         self.x, self.y, self.th = start
@@ -132,6 +133,8 @@ class Sim:
         self.ds, self.ts = odo_dist_scale, odo_turn_scale
         self.read_cost_ms = read_cost_ms
         self.button_events = list(buttons)  # (t_from, t_to, Button)
+        self.battery_initial_mv = battery_mv
+        self.battery_events = sorted(battery_events)  # (t_from_ms, voltage_mv)
         self.rng = _Random(seed)
         self.max_ms = max_ms
 
@@ -275,6 +278,14 @@ class Sim:
                     self.x, self.y, self.th = ev[3]
                     setattr(self, "_moved_" + str(id(ev)), True)
         return out
+
+    def battery_voltage(self):
+        value = self.battery_initial_mv
+        for t_from, voltage_mv in self.battery_events:
+            if self.t < t_from:
+                break
+            value = voltage_mv
+        return value
 
     # ---------------------------------------------------------- physics
     def _targets(self):

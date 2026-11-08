@@ -1,6 +1,6 @@
 # EV3 Tap Shadow V2 实机操作卡
 
-脚本：`src/probe_tap_shadow.py`。用途仅为采集和影子判断；模型不会控制 Final、捕获或交付。
+脚本：`src/probe_tap_shadow.py`（日志版本 `tap-shadow-v2.1`）。用途仅为采集和影子判断；模型不会控制 Final、捕获或交付。
 
 ## 运行前
 
@@ -37,8 +37,9 @@ pbrun.cmd src\probe_tap_shadow.py > logs\tap-shadow-YYYYMMDD-run01.txt
 6. 任意时刻出现危险立即按 CENTER。白边、卡滞、500 ms 无进展或阶段超时都会自动制动并写 `SHADOW_ABORT`/不完整结果。
 
 若 LEFT 与 RIGHT 同时按下，标签无效，脚本会要求松开后重新选择；不要把这一提示当作一次标签。
+每次 tap/探针授权均在提示前和松键后复查电池；任一次低于 7000 mV 都会制动并终止整轮。
 
-`0to1` 表示探针使物体落座；`1to0` 表示探针导致脱落，是安全硬失败。
+`0to1` 表示探针使物体落座；`1to0` 表示探针导致脱落，是安全硬失败。无论试验是否完整，出现 `1to0` 都会写入 `SHADOW_SAFETY_FAIL` 并立即终止当前采集会话。
 
 ## 日志检查
 
@@ -47,6 +48,7 @@ pbrun.cmd src\probe_tap_shadow.py > logs\tap-shadow-YYYYMMDD-run01.txt
 - `SHADOW_LABEL`：探针前/后的人工真值。
 - `SHADOW_RESULT`：完整性、转化、Final 规则、模型输出、电压、最大推理/采样周期。
 - `SHADOW_ABORT`：未进入统计的安全中止；`SHADOW_FATAL` 表示异常后制动并终止整轮。
+- `SHADOW_SAFETY_FAIL` / `SHADOW_SESSION_ABORT`：掉物或低电压触发的会话级安全熔断，出现后不得在同一轮继续。
 
 汇总：
 
@@ -54,7 +56,7 @@ pbrun.cmd src\probe_tap_shadow.py > logs\tap-shadow-YYYYMMDD-run01.txt
 python tools/parse_shadow_logs.py logs/tap-shadow-YYYYMMDD-run01.txt
 ```
 
-Final 规则必须与 `pre_probe` 比较，模型必须与 `post_probe` 比较；解析器已按此处理，并排除不完整试验以及超过下述时延门槛的模型样本。
+Final 规则必须与 `pre_probe` 比较，模型必须与 `post_probe` 比较；解析器已按此处理，并从准确率中排除不完整试验以及超过下述时延门槛的模型样本。安全转化则统计所有 `SHADOW_RESULT`，包括不完整试验；重点检查 `drop_safety_events` 和 `incomplete_drop_safety_events`。
 
 ## 验收门槛
 
