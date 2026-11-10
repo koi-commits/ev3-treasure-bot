@@ -18,7 +18,6 @@ set "LOCALAPPDATA=%USERPROFILE%\AppData\Local"
 set "PYTHONIOENCODING=utf-8"
 set "PB_ENDPOINT=tcp://127.0.0.1:47823"
 set "PB_SERVICE_CMD=D:\python\python.exe -m pb_service --idle-timeout 60"
-set "PB_HUB_NAME=Hamster"
 if not exist "%PB_RUNTIME_DIR%" mkdir "%PB_RUNTIME_DIR%"
 if not exist "%PB_STATE_DIR%" mkdir "%PB_STATE_DIR%"
 if not exist "%APPDATA%" mkdir "%APPDATA%"
@@ -27,6 +26,23 @@ if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%"
 set "PBEXE=D:\python\Scripts\pb.exe"
 
 "%PBEXE%" service start >nul 2>&1
+
+rem Hub name: it is whatever the brick calls itself, and the user can rename it
+rem (Hamster on 2026-11-03, Platypus on 2026-11-10). Do not hard-code it: ask
+rem `pb scan` and take the first real name, unless PB_HUB_NAME was passed in.
+if not defined PB_HUB_NAME (
+  for /f "usebackq delims=" %%H in (`"%PBEXE%" scan`) do (
+    if not defined PB_HUB_NAME set "PB_HUB_NAME=%%H"
+  )
+)
+echo %PB_HUB_NAME% | findstr /c:"No hubs" >nul && set "PB_HUB_NAME="
+if not defined PB_HUB_NAME (
+  echo [pbrun] no hub found - is the EV3 switched on and the USB cable plugged in?
+  "%PBEXE%" service stop >nul 2>&1
+  exit /b 1
+)
+echo [pbrun] hub=%PB_HUB_NAME%
+
 "%PBEXE%" connect --hub %PB_HUB_NAME% --transport usb
 if errorlevel 1 (
   echo [pbrun] connect failed

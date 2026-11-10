@@ -27,6 +27,13 @@ from pybricks.tools import StopWatch, run_task, wait
 
 PHASE_MS = 6000
 
+# A/B/C/D 四个阶段之间没有 wait，循环会跑到传感器读取的极限（每秒几百次）。
+# 原版把所有样本都 append 进列表，6 秒就把 MicroPython 的堆吃掉：
+#   MemoryError（2026-11-10 实机，phase A）
+# 所以只保留前 MAX_KEEP 个样本做 distinct 统计，min/max/最长连续相同值
+# 用累加字段算，覆盖全部样本，不受裁剪影响。
+MAX_KEEP = 400
+
 
 def bright(rgb):
     return (rgb[0] + rgb[1] + rgb[2]) / 3.0
@@ -36,12 +43,19 @@ class Track:
     def __init__(self, name):
         self.name = name
         self.vals = []
+        self.n = 0
+        self.lo = None
+        self.hi = None
         self.run = 0
         self.max_run = 0
         self.last = None
 
     def add(self, v):
-        self.vals.append(v)
+        self.n += 1
+        if self.lo is None or v < self.lo:
+            self.lo = v
+        if self.hi is None or v > self.hi:
+            self.hi = v
         if v == self.last:
             self.run += 1
         else:
@@ -49,13 +63,15 @@ class Track:
             self.last = v
         if self.run > self.max_run:
             self.max_run = self.run
+        if len(self.vals) < MAX_KEEP:
+            self.vals.append(v)
 
     def report(self):
-        if not self.vals:
+        if not self.n:
             return "  {}: none".format(self.name)
         distinct = len(set(self.vals))
         return "  {:10s} n={} min={} max={} distinct={} longest_same={}".format(
-            self.name, len(self.vals), min(self.vals), max(self.vals), distinct, self.max_run)
+            self.name, self.n, self.lo, self.hi, distinct, self.max_run)
 
 
 async def phase(tag, reads, extra_wait=0):

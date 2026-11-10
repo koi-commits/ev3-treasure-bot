@@ -135,15 +135,32 @@ SEARCH_SPIN_DEG = 45
 # "reflection" = 已验证基线（只判白边，无色标）
 # "rgb"        = 单模式 RGB：白边 + 色标（需 SIGNATURES 与 RGB_EDGE_BRIGHT）
 # "dual"       = reflection 判边 + rgb 判色标（每 tick 切两次模式，慎用）
-SENSE_MODE = "reflection"
+SENSE_MODE = "rgb"
 
-RGB_EDGE_BRIGHT = None          # [TBD] rgb 模式下"亮度 > 此值且未识别"视为白边
+# 2026-11-10 实机标定（probe_timing + calibrate_marker + _probe_marker）：
+#   probe_timing 结论 A/B/D 都随表面变化（rgb 3.6..51.3）-> 不是模式切换问题，可用单模式 rgb
+#   floor  rgb_mean=(4.8,5.9,5.3) bright 2.3..8.7   refl 0.2..1.8
+#   white  rgb_mean=(57.3,51.1,34.7) bright 41.3..53.0 refl 5.4..15.1（场地白线 20mm）
+#   finish rgb_mean=(58.7,16.4,12.0) bright 28.3..29.3（_probe_marker 重测，50/50 识别）
+# 注意：白线外侧是浅黄色木地板，rgb≈(56,47,37) 与白线几乎同色 -> 在 rgb 模式下
+# 两者都算 "white"，对沿边巡线有利（越界一定看得见），但不能用颜色区分"线"与"场外"。
+RGB_EDGE_BRIGHT = 25.0          # floor 最亮 8.7 / white 最暗 41.3 -> 中点
 MARKER_CONFIRM = 3              # 色标须连续 3 个样本（150 ms）同类才确认
 FINISH_LABEL = "finish"         # SIGNATURES 中终点色标的名字
 
 # calibrate_marker.py 会打印一段可直接粘贴的 SIGNATURES。
 # 特征顺序：(r, g, b, bright, cr, cg)；tol 为 None 的维度不检查。
-SIGNATURES = {}                 # [TBD]
+# red 的 tol 比实测散布（±0.5）放宽到 10/8：实车行驶时光斑高度、车身俯仰都会变。
+# 已核对两两不重叠：floor 的 r 上界 13.9 < red 下界 48.7；
+# white 的 g 下界 41.6 > red 的 g 上界 26.4。
+SIGNATURES = {
+    "floor": {"mean": (4.8, 5.9, 5.2, 5.3, 29.7, 37.5),
+              "tol": (9.1, 10.7, 10.0, 9.6, 17.3, 20.9)},
+    "white": {"mean": (57.3, 51.1, 34.7, 47.7, 40.1, 35.8),
+              "tol": (16.1, 9.5, 22.7, 14.4, 4.0, 9.0)},
+    "finish": {"mean": (58.7, 16.4, 12.0, 29.0, 67.4, 18.8),
+               "tol": (10.0, 10.0, 10.0, 8.0, 10.0, 10.0)},
+}
 
 # ============================================================
 # 10. 自主任务（mission.py）—— 全部【待实机验证】
@@ -166,7 +183,10 @@ SEEK_BACKOFF_MM = 30            # 找到边后后退量（demo_edge 的未 await
 START_BACK_MAX_MM = 200         # 起步光斑就在白边上：最多倒车这么远找回地面
 
 # 巡线监督 / 异常恢复
-FOLLOW_MAX_MS = 120000          # 沿边找终点的上限（应 > 绕场一圈时间，[TBD]）
+FOLLOW_MAX_MS = 300000          # 沿边找终点的上限。2026-11-10 实测：场地内部 1236x723，
+                                # 周长约 3.9 m，而 20 mm 窄白线让 bang-bang 大部分时间在逃逸，
+                                # 有效前进只有约 25 mm/s -> 一圈约 160 s。原 120 s 跑不完整圈。
+                                # 300 s 给到 1.5-2 圈，电池与安全兜底由 MISSION_MAX_MS 控制。
 LOST_EDGE_MS = 6000             # CRUISE 中这么久没见白 -> 认为丢边，重新直行寻边
 OVERRUN_BACK_MM = 60            # 续转用完仍在白区 -> 先倒车这么多
 OVERRUN_LIMIT = 4               # 连续越界恢复次数上限，超过则中止
@@ -176,7 +196,7 @@ STALL_TURN_DEG = 60
 
 # 出界判定：凸（矩形）场地内，任何不见白的直线段都不可能长于对角线。
 # 直行超过 ARENA_DIAG_MM 仍未见白 -> 判定已在场外，朝最近见白位置返回并穿过白带。
-ARENA_DIAG_MM = 1600            # [TBD] 实测场地内部对角线 × 1.1（偏大只会恢复变慢，偏小会误判）
+ARENA_DIAG_MM = 1580            # 实测场地内部 1236 x 723 mm -> 对角线 1432，乘 1.1
 RETURN_IN_MM = 150              # 穿过白带回到场内后再前进这么多
 
 # 到达终点 / 放下物体

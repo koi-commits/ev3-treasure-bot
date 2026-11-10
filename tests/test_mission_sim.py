@@ -87,14 +87,17 @@ class TestEdgeToFinish(unittest.TestCase):
 
     def test_reflection_mode_follows_without_marker(self):
         s = Sim(start=(600, 450, 0.3), seed=1, buttons=press_right())
-        out, s = run_script("mission", s, FOLLOW_MAX_MS=40000)
+        # 这些用例验证的是"尚未标定色标"时的行为，所以显式传入未标定的传感配置，
+        # 不依赖 src/config.py 里当前实测的 SENSE_MODE / SIGNATURES。
+        out, s = run_script("mission", s, FOLLOW_MAX_MS=40000, SENSE_MODE="reflection",
+                            SIGNATURES={}, RGB_EDGE_BRIGHT=None)
         self.assertIn("END time", result_line(out))
         self.assertLess(s.max_out, 25)
         self.assertEqual(s.max_out_center, 0)
 
     def test_misconfigured_rgb_mode_refuses(self):
         s = Sim(seed=1, buttons=press_right())
-        out, _ = run_script("mission", s, SENSE_MODE="rgb")
+        out, _ = run_script("mission", s, SENSE_MODE="rgb", SIGNATURES={}, RGB_EDGE_BRIGHT=None)
         self.assertIn("config error", out)
 
 
@@ -129,7 +132,8 @@ class TestFull(unittest.TestCase):
 
     def test_full_without_markers_refuses(self):
         s = Sim(seed=1, buttons=press_right())
-        out, _ = run_script("mission", s, MISSION_MODE="full")
+        out, _ = run_script("mission", s, MISSION_MODE="full", SENSE_MODE="reflection",
+                            SIGNATURES={}, RGB_EDGE_BRIGHT=None)
         self.assertIn("FAIL full needs markers", result_line(out))
 
 
