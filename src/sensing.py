@@ -15,7 +15,7 @@ EV3 颜色传感器的 reflection / rgb / color / hsv 对应不同的硬件模�
 """
 
 import config
-from fsm import BoxClassifier, Debounce, features, signature_from_dict
+from fsm import BoxClassifier, Debounce, features, is_red, signature_from_dict
 
 
 class Sample:
@@ -45,6 +45,7 @@ class Sensing:
         self.markers = tuple(n for n in config.SIGNATURES if n not in ("floor", "white"))
         self.debounce = Debounce(config.MARKER_CONFIRM)
         self.marker_enabled = self.mode in ("rgb", "dual") and len(self.markers) > 0
+        self.red_rule = config.RED_RULE if self.mode in ("rgb", "dual") else None
         if self.mode in ("rgb", "dual") and self.clf is None and self.rgb_thr is None:
             raise ValueError("SENSE_MODE needs calibrate_marker.py results in config")
 
@@ -68,6 +69,11 @@ class Sensing:
 
         if self.clf is not None:
             s.label, _ = self.clf.classify(s.rgb)
+
+        # 红色比例兜底：盒子没命中但明显偏红，也算终点色标（见 fsm.is_red 的实测依据）
+        if s.label is None and self.red_rule is not None:
+            if is_red(s.rgb, self.red_rule[0], self.red_rule[1], self.red_rule[2]):
+                s.label = config.FINISH_LABEL
 
         is_marker = s.label in self.markers
         if self.mode == "dual":

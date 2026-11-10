@@ -145,8 +145,20 @@ SENSE_MODE = "rgb"
 # 注意：白线外侧是浅黄色木地板，rgb≈(56,47,37) 与白线几乎同色 -> 在 rgb 模式下
 # 两者都算 "white"，对沿边巡线有利（越界一定看得见），但不能用颜色区分"线"与"场外"。
 RGB_EDGE_BRIGHT = 25.0          # floor 最亮 8.7 / white 最暗 41.3 -> 中点
-MARKER_CONFIRM = 3              # 色标须连续 3 个样本（150 ms）同类才确认
+MARKER_CONFIRM = 2              # 色标须连续 2 个样本（100 ms）同类才确认。
+                                # 2026-11-10 实机：原值 3 时，60 mm/s 掠过色标只有 1-2 个样本，
+                                # 明明"扫到了红色"却不停车（日志里有多次孤立的 lab=finish）。
 FINISH_LABEL = "finish"         # SIGNATURES 中终点色标的名字
+
+# 红色比例兜底判据 (cr_min, cg_max, bright_min)。
+# 实测覆盖同一色标的全部读数：r 48..139、g 1..18、b 2..31（rgb() 可超过 100）。
+#   (59,16,12) cr=67.8 cg=18.4 bright=29.0   -> 命中
+#   (129,14,6) cr=86.6 cg=9.4  bright=49.7   -> 命中
+#   (48,1,2)   cr=94.1 cg=2.0  bright=17.0   -> 命中
+#   white (57,51,35) cr=40.1 cg=35.8         -> 不命中
+#   floor (5,6,5)    cr=31.3 cg=37.5         -> 不命中
+#   暗噪声 (8,3,2)   bright=4.3              -> bright 门槛挡掉
+RED_RULE = (60.0, 28.0, 8.0)
 
 # calibrate_marker.py 会打印一段可直接粘贴的 SIGNATURES。
 # 特征顺序：(r, g, b, bright, cr, cg)；tol 为 None 的维度不检查。

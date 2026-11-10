@@ -181,6 +181,19 @@ def build_signature(name, samples, k=4.0, floors=(2.0, 2.0, 2.0, 1.5, 4.0, 4.0))
     return Signature(name, mean, tol)
 
 
+def is_red(rgb, cr_min, cg_max, bright_min):
+    """红色比例判据（盒式签名的兜底）。
+
+    2026-11-10 实机：同一块红色色标在小车上读到过
+        (59,16,12) (49,16,13) (51,11,7) (129,14,6) (139,18,31) (86,13,12) (48,1,2)
+    r 从 48 一直到 139（rgb() 会超过 100），g/b 从 1 到 18。
+    固定盒子（mean 58.7 ± tol 10）盖不住"更红更亮"的那一半，所以补一条**比例**判据：
+    红色占比高、绿色占比低、且不是暗噪声。
+    """
+    f = features(rgb)
+    return f[3] >= bright_min and f[4] >= cr_min and f[5] <= cg_max
+
+
 class Debounce:
     """连续 n 次同一标签才输出确认。用于"色标必须稳定出现若干个样本"。"""
 
