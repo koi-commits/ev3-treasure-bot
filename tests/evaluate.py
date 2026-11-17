@@ -76,6 +76,12 @@ def object_near_edge(rng, aw=W, ah=H):
     return o
 
 
+# 仿真的车体几何仍是 v3 之前的（tests/sim.py：sensor_offset=60、GEOM 的 plow apex/depth）：
+# 光斑前伸 60 mm、物体落座 110 mm。2026-11-17 换底盘后 config 里是新的图纸标称值
+# （52 / 139，未实测），仿真必须对拍"仿真自己的几何"，否则色标映射与交付目标点会系统性偏。
+SIM_GEOM = dict(SENSOR_OFFSET_MM=60.0, SENSOR_LATERAL_MM=0.0, OBJ_LEAD_MM=110.0)
+
+
 # ---------------------------------------------------------------- 单次运行
 def run_one(seed, mode="edge_to_finish", start=start_normal, obj=object_interior, mark=RED_MARK,
             arena=(W, H), sim_kw=None, cfg=None, obj_kw=None, base=3000):
@@ -91,6 +97,7 @@ def run_one(seed, mode="edge_to_finish", start=start_normal, obj=object_interior
     s = Sim(W=aw, H=ah, start=st, seed=seed, buttons=press_right(), markers=[mk], objects=objs,
             max_ms=900000, **(sim_kw or {}))
     c = rgb_cfg(mark, MISSION_MODE=mode, MISSION_MAX_MS=600000)
+    c.update(SIM_GEOM)
     c.update(cfg or {})
     out, s = run_script("mission", s, seed=seed, allow_timeout=True, **c)
     res = [l for l in out.splitlines() if l.startswith("result:")]

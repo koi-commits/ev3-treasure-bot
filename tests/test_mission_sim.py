@@ -178,6 +178,18 @@ class TestDeviceScriptsSmoke(unittest.TestCase):
         self.assertIn("new WHEEL_DIAMETER_MM", out)
         self.assertIn("AXLE", out)
 
+    def test_probe_new_hw(self):
+        """v3 新传感器验收：a 段 32 s + b 段 20 s，c 段等 RIGHT（约 52 s 处）后转 360°。"""
+        from pybricks.parameters import Button
+        R = Button.RIGHT
+        s = Sim(start=(600, 450, 0), seed=1, max_ms=120000,
+                buttons=[(100, 200, R), (55000, 55100, R)])
+        out = self.run_until_timeout("probe_new_hw", s)
+        self.assertIn("--- a) gyro drift ---", out)
+        self.assertIn("--- c) turn 360", out)
+        self.assertIn("suggested AXLE_TRACK_MM", out)
+        self.assertIn("=== done ===", out)
+
     def test_survey_mode(self):
         s = Sim(start=(600, 450, 1.0), seed=3, buttons=press_right(), markers=[rect_arena_marker(W, H, "top")])
         out, _ = run_script("mission", s, **rgb_cfg(MISSION_MODE="survey", FOLLOW_MAX_MS=120000))

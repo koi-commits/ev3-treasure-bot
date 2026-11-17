@@ -29,6 +29,55 @@
 
 `GEOMETRY_CONFIRMED = False`。
 
+## v3 hardware（2026-11-17 换底盘）
+
+官方 LEGO Education EV3 "Robot Educator" 驱动底座 + 颜色传感器朝下居中 + 陀螺仪 + 自制 V 形推板
+（11 孔臂 6-8-10 三角 ≈74°，13 孔侧壁，横梁约在轮轴前 72 mm），推板口袋顶点装触感。
+目标物：平放的 LEGO 轮胎 Ø67 × 33 mm。没有超声波。
+
+**下表每一行都是 `[TBD]`：图纸 / Pybricks 示例值，尚未在 v3 实物上量过。**
+
+| 项目 | config | 当前值 | 状态 / 怎么测 |
+|---|---|---|---|
+| 左 / 右电机端口 | `LEFT_MOTOR_PORT` / `RIGHT_MOTOR_PORT` | `Port.B` / `Port.C` | `diag.py` 复核后 `PORTS_CONFIRMED = True` |
+| 颜色传感器端口 | `COLOR_SENSOR_PORT` | `Port.S3` | 同上 |
+| 触感端口 | `TOUCH_SENSOR_PORT` | `Port.S1` | `probe_new_hw.py` b 段 |
+| 陀螺仪端口 | `GYRO_SENSOR_PORT` | `Port.S2` | `probe_new_hw.py` a / b 段 |
+| 电机方向 | `*_MOTOR_DIRECTION` | `CLOCKWISE` | `motor_id.py` 架空观察，再 `DIRECTIONS_CONFIRMED = True` |
+| 齿轮组 | `GEARS` | `None` | 目视确认是否直连 |
+| 轮径 (mm) | `WHEEL_DIAMETER_MM` | `55.5` | `calibrate_geometry.py`（1000 mm） |
+| 轮距 (mm) | `AXLE_TRACK_MM` | `104.0` | `probe_new_hw.py` c 段：建议值 = 104 × k |
+| 陀螺仪符号 | `GYRO_POSITIVE_DIRECTION` | `None` | `probe_new_hw.py` c 段（+1 / −1） |
+| 陀螺仪漂移 | — | — | `probe_new_hw.py` a 段，通过标准 < 2 deg/min |
+| 触感防抖 | `TOUCH_DEBOUNCE_N` | `3` | b 段手指按住顶点后定 |
+| 传感器离地 (mm) | `SENSOR_HEIGHT_MM` | `None` | 尺子 + 反射率是否饱和 |
+| 光斑前伸 (mm) | `SENSOR_OFFSET_MM` | `52` | 尺子：光斑中心 → 两轮轴线中点 |
+| 光斑横向 (mm) | `SENSOR_LATERAL_MM` | `0` | 尺子：相对车体中线，右为正 |
+| 物体落座 (mm) | `OBJ_LEAD_MM` | `139` | 物体卡在口袋顶点时，物体中心 → 两轮轴线中点 |
+| 推板前端 (mm) | `PLOW_FRONT_MM` | `188` | 推板最前端 → 两轮轴线中点 |
+
+### 换底盘后失效、必须重测的标定
+
+| 项目 | config | 旧值（只作起点） |
+|---|---|---|
+| 黑场反射率 | `BLACK_REFLECTION` | 0.7 |
+| 白线反射率 | `WHITE_REFLECTION` | 12.0 |
+| 白边阈值 | `edge_threshold()` / `DEFAULT_EDGE_THRESHOLD` | 6.35 / 45.0 |
+| rgb 白边亮度 | `RGB_EDGE_BRIGHT` | 25.0 |
+| 色标签名 | `SIGNATURES` | floor / white / finish 三组 |
+| 红色比例兜底 | `RED_RULE` | (60.0, 28.0, 8.0) |
+| 巡线速度 / 偏转 / 逃逸 | `FOLLOW_SPEED` / `APPROACH_STEER` / `EDGE_TURN_RATE` / `EDGE_ESCAPE_MS` / `EDGE_CLEAR_MS` | 60 / 22 / 130 / 350 / 400 |
+
+`PORTS_CONFIRMED`、`DIRECTIONS_CONFIRMED`、`GEOMETRY_CONFIRMED`、`COLOR_CONFIRMED` 全部为 `False`。
+`SENSE_MODE` 仍是 `"rgb"`，但它依赖的签名已失效；重标定之前跑巡线建议临时改 `"reflection"`。
+
+### v3 实机验证顺序
+
+`check_env.py` → `motor_id.py` → `probe_new_hw.py` → `calibrate.py` / `calibrate_marker.py`
+→ `demo_edge.py`（冻结基线回归）→ 再谈 `mission.py`。
+
+> 2026-11-03 的端口/方向/反射率表格保留在下面，作为**旧底盘**的历史记录。
+
 ## 待测量（2026-11-10 实机前，见 `docs/tuesday-test-plan.md` 第 0 部分）
 
 | # | 项目 | config / 用途 | 实测值 | 备注 |

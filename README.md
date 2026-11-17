@@ -9,7 +9,25 @@
 > **AI 阶段一/接触复核（2026-11-08）**：端到端低层 GRU 在独立测试为 0/24，不能替代 Final；旧接触模型的 2/50 虚报口径已撤回。当前推荐实验是 Final tap+seat 后的保持探针 GRU，仍只允许影子运行。见 [`docs/ai-learning-2026-11-08.md`](docs/ai-learning-2026-11-08.md)、[`docs/ai-contact-event-2026-11-08.md`](docs/ai-contact-event-2026-11-08.md) 与可直接执行的 [`docs/tap-shadow-runbook.md`](docs/tap-shadow-runbook.md)。
 
 
-LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybricks 4.1.2 MicroPython。
+LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺仪 + 推板顶点触感，Pybricks 4.1.2 MicroPython。
+
+## 硬件（v3，2026-11-17 重建）
+
+官方 LEGO Education EV3 "Robot Educator" 驱动底座，颜色传感器朝下居中，加装陀螺仪与自制 V 形推板
+（11 孔臂 6-8-10 三角 ≈74°，13 孔侧壁，横梁约在轮轴前 72 mm），推板口袋顶点装一个触感传感器。
+没有超声波。目标物是平放的 LEGO 轮胎 Ø67 × 33 mm。
+
+| 部件 | 端口 | config | 状态 |
+|---|---|---|---|
+| 左轮电机 | **B** | `LEFT_MOTOR_PORT` | 未复核（`PORTS_CONFIRMED = False`） |
+| 右轮电机 | **C** | `RIGHT_MOTOR_PORT` | 未复核 |
+| 颜色传感器（朝下居中） | **S3** | `COLOR_SENSOR_PORT` | 未标定（换底盘后颜色全部失效） |
+| 触感（推板顶点） | **S1** | `TOUCH_SENSOR_PORT` | 未验证 |
+| 陀螺仪 | **S2** | `GYRO_SENSOR_PORT` | 未验证 |
+
+换底盘让颜色标定与巡线参数全部失效：`config.py` 里相应行都标了
+`[TBD - invalidated by chassis rebuild 2026-11-17]`，旧值只当起点保留。
+新硬件的验证顺序见 [docs/calibration.md](docs/calibration.md) 的 v3 段。
 
 **当前阶段**
 
@@ -33,7 +51,8 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器，Pybrick
 | 功能 | 脚本 | 状态 |
 |---|---|---|
 | 设备识别、端口、电机方向 | `check_env.py` / `motor_id.py` / `test_motors.py` | ✅ 实机 |
-| 黑白反射率标定 | `calibrate.py` / `probe_live.py` | ✅ 实机（阈值 6.35） |
+| 黑白反射率标定 | `calibrate.py` / `probe_live.py` | ✅ 实机（阈值 6.35，**v3 需重测**） |
+| 新传感器验收（陀螺漂移 / 触感 / 轮距） | `probe_new_hw.py` | 🧪 待实机（v3 新增） |
 | **寻边 + 三状态沿边巡线** | **`demo_edge.py`**（冻结基线） | ✅ 实机 |
 | 颜色模式切换诊断 | `probe_timing.py` | 🧪 待实机 |
 | 终点色标识别与标定 | `color_probe.py` / `calibrate_marker.py` | 🧪 待实机（离线通过） |
@@ -63,6 +82,7 @@ ev3-treasure-bot/
 │   ├── mission.py            # ★ 完整任务状态机
 │   ├── demo_edge.py          # ★ 已验证基线（冻结）
 │   ├── calibrate_marker.py / probe_timing.py / color_probe.py / probe_load.py / calibrate_geometry.py
+│   ├── probe_new_hw.py       # ★ v3 新传感器验收：陀螺漂移 / 触感 / 颜色 / 原地转 360° 测轮距
 │   ├── calibrate.py / probe_live.py / check_env.py / test_motors.py / motor_id.py ...
 │   └── common.py
 └── tests/                    # PC 离线测试（不上机）
@@ -101,9 +121,12 @@ full：────────────────────────�
 ```bat
 cd <PROJ>
 D:\python\python.exe tests\run_all.py          rem 离线自检，期望 OK
+pbrun.cmd src\probe_new_hw.py                   rem v3 新传感器验收（陀螺漂移/触感/轮距）
 pbrun.cmd src\demo_edge.py                      rem 基线回归
 pbrun.cmd src\mission.py                        rem 完整任务（先按测试方案标定）
 ```
+
+硬件 v3 的现场验证顺序：`check_env.py` → `motor_id.py` → `probe_new_hw.py` → `calibrate.py` → `demo_edge.py`。
 
 正常起点规则：**车身和光斑都在深色场地内**，朝向随机。B1 属于单独的白边起步异常恢复测试，不计入正常起点成功率。
 
