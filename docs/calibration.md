@@ -50,6 +50,7 @@
 | 陀螺仪符号 | `GYRO_POSITIVE_DIRECTION` | `None` | `probe_new_hw.py` c 段（+1 / −1） |
 | 陀螺仪漂移 | — | — | `probe_new_hw.py` a 段，通过标准 < 2 deg/min |
 | 触感防抖 | `TOUCH_DEBOUNCE_N` | `3` | b 段手指按住顶点后定 |
+| 触感/陀螺读值是否 awaitable | — | — | **[TBD - confirm on hardware]** b 段开头会打印 `type(touch.pressed())` 与 `type(gyro.angle())`：是 `Value`/coroutine 就必须 `await`，是 `bool`/`float` 就是同步。代码已统一走 `common.aread()`，两种都兼容；这一行只记录实机结论 |
 | 传感器离地 (mm) | `SENSOR_HEIGHT_MM` | `None` | 尺子 + 反射率是否饱和 |
 | 光斑前伸 (mm) | `SENSOR_OFFSET_MM` | `52` | 尺子：光斑中心 → 两轮轴线中点 |
 | 光斑横向 (mm) | `SENSOR_LATERAL_MM` | `0` | 尺子：相对车体中线，右为正 |
@@ -69,7 +70,9 @@
 | 巡线速度 / 偏转 / 逃逸 | `FOLLOW_SPEED` / `APPROACH_STEER` / `EDGE_TURN_RATE` / `EDGE_ESCAPE_MS` / `EDGE_CLEAR_MS` | 60 / 22 / 130 / 350 / 400 |
 
 `PORTS_CONFIRMED`、`DIRECTIONS_CONFIRMED`、`GEOMETRY_CONFIRMED`、`COLOR_CONFIRMED` 全部为 `False`。
-`SENSE_MODE` 仍是 `"rgb"`，但它依赖的签名已失效；重标定之前跑巡线建议临时改 `"reflection"`。
+`SENSE_MODE` 已改为 `"reflection"`（bring-up）：签名失效期间只判白边。v3 上重跑 `calibrate_marker.py`
+并回填 `SIGNATURES` + `RGB_EDGE_BRIGHT` 之后，才改回 `"rgb"`。
+`GYRO_POSITIVE_DIRECTION` 未回填时，任何基于陀螺仪的代码走 `common.require_gyro_sign()` 会直接报错（不默认 `+1`）。
 
 ### v3 实机验证顺序
 

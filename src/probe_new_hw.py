@@ -5,7 +5,9 @@ probe_new_hw.py — 2026-11-17 硬件 v3 新传感器验收（陀螺仪 / 触感
 
   a) 陀螺仪静止漂移：等待 2 s -> gyro.reset_angle(0) -> 打印 3 s 与 30 s 的读数。
      通过标准：漂移 < 2 deg/min（30 s 内 < 1 deg）。车要放在水平的黑场中间，别碰。
-  b) 20 s 活体打印（10 Hz）：touch.pressed() / gyro.angle() / color.reflection()。
+  b) 20 s 活体打印（10 Hz）：触感 / 陀螺 / 反射率。开头只打印一次 touch.pressed() 与
+      gyro.angle() 的原始返回类型，用来实机确认这两个读值到底要不要 await。
+     所有读值都经 common.aread()（数字原样返回，awaitable 才 await）。
      用法：手指按住推板顶点的触感；手动转车身看陀螺仪；把光斑依次放到黑场 / 白线上。
   c) 原地转 360°（RIGHT 确认后才动）：比较 gyro.angle() 与 drive.angle()。
      打印符号是否一致、比例 k、建议的 AXLE_TRACK_MM = 104 * k。
@@ -19,7 +21,7 @@ probe_new_hw.py — 2026-11-17 硬件 v3 新传感器验收（陀螺仪 / 触感
 
 import config
 
-from common import battery_check, log, wait_for_button, warn_unconfirmed
+from common import aread, battery_check, log, wait_for_button, warn_unconfirmed
 from hardware import color, drive, ev3, gyro, touch
 from pybricks.tools import run_task, wait
 
@@ -53,10 +55,10 @@ async def sec_drift():
     await wait(DRIFT_SETTLE_MS)
     gyro.reset_angle(0)
     await wait(DRIFT_SHORT_MS)
-    short = gyro.angle()
+    short = await aread(gyro.angle())
     log(ev3, "drift 3s  =", _fmt(short, 2), "deg")
     await wait(DRIFT_LONG_MS - DRIFT_SHORT_MS)
-    long = gyro.angle()
+    long = await aread(gyro.angle())
     log(ev3, "drift 30s =", _fmt(long, 2), "deg =", _fmt(long * 2.0, 2), "deg/min")
     if abs(long) < DRIFT_PASS_DEG:
         log(ev3, "PASS: drift < 2 deg/min")
@@ -67,10 +69,21 @@ async def sec_drift():
 async def sec_live():
     log(ev3, "--- b) live", LIVE_MS // 1000, "s @", 1000 // LIVE_PERIOD_MS, "Hz ---")
     log(ev3, "press touch / rotate body / move spot over floor and white line")
+    # 只打印一次原始返回类型：实机跑这一行就能定死"触感/陀螺读值到底要不要 await"。
+    if touch is not None and gyro is not None:
+        t_type = type(touch.pressed())   # aread-ok: 只取类型，不读值、不影响后续
+        g_type = type(gyro.angle())      # aread-ok: 只取类型，不读值、不影响后续
+        log(ev3, "type touch:", t_type, "gyro:", g_type)
+    else:
+        log(ev3, "WARN: sensor missing, type probe skipped")
     t = 0
     while t < LIVE_MS:
-        pressed = touch.pressed() if touch is not None else None
-        angle = gyro.angle() if gyro is not None else None
+        pressed = None
+        angle = None
+        if touch is not None:
+            pressed = await aread(touch.pressed())
+        if gyro is not None:
+            angle = await aread(gyro.angle())
         refl = await color.reflection()
         log(ev3, "t=", t, "touch=", pressed, "gyro=", _fmt(angle, 1), "refl=", _fmt(refl, 1))
         await wait(LIVE_PERIOD_MS)
@@ -89,11 +102,11 @@ async def sec_turn():
     await wait(300)                     # reset 后让车身完全停稳
     gyro.reset_angle(0)
     await wait(300)
-    g0 = gyro.angle()
+    g0 = await aread(gyro.angle())
     d0 = drive.angle()
     await drive.turn(TURN_DEG)
     await wait(500)                     # 停下后车身还会轻微回弹，等一下再读
-    gd = gyro.angle() - g0
+    gd = (await aread(gyro.angle())) - g0
     dd = drive.angle() - d0
     log(ev3, "gyro delta =", _fmt(gd, 1), "deg   drive delta =", _fmt(dd, 1), "deg")
 

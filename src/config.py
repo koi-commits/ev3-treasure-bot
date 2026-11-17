@@ -153,8 +153,8 @@ SEARCH_SPIN_DEG = 45
 # "reflection" = 已验证基线（只判白边，无色标）
 # "rgb"        = 单模式 RGB：白边 + 色标（需 SIGNATURES 与 RGB_EDGE_BRIGHT）
 # "dual"       = reflection 判边 + rgb 判色标（每 tick 切两次模式，慎用）
-SENSE_MODE = "rgb"             # 注意：依赖下面的 SIGNATURES；换底盘后签名已失效，
-                               # 重标定之前建议先临时改 "reflection" 跑巡线
+SENSE_MODE = "reflection"      # bring-up 默认：换底盘后 SIGNATURES 已失效，先只用反射率巡线。
+                               # v3 重跑 calibrate_marker.py 拿到新签名后，再改回 "rgb"（色标模式）。
 
 # 2026-11-10 实机标定（probe_timing + calibrate_marker + _probe_marker）：
 #   probe_timing 结论 A/B/D 都随表面变化（rgb 3.6..51.3）-> 不是模式切换问题，可用单模式 rgb

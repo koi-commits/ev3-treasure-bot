@@ -6,6 +6,8 @@ Button 约定 (all scripts):
   CENTER = 紧急停止 (Pybricks 默认 stop button，不要占用)
 """
 
+import config
+
 from pybricks.parameters import Button, Color
 from pybricks.tools import wait
 
@@ -63,3 +65,29 @@ def warn_unconfirmed(ev3, cfg):
     items = cfg.unconfirmed_items()
     if items:
         log(ev3, "TBD:", ",".join(items))
+
+
+async def aread(value):
+    """读传感器：Pybricks 4.x 的读值可能返回 awaitable，也可能直接是数字。
+
+    ColorSensor.reflection()/rgb() 已实机确认必须 await；Motor.load() 已实机确认不用 await。
+    TouchSensor.pressed() / GyroSensor.angle()/speed() 是否 awaitable 尚未实机确认
+    （[TBD - confirm on hardware]，probe_new_hw.py b 段会打印原始类型），
+    所以统一走这里：数字 / bool / None 原样返回，其余 await 一次。
+    """
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    return await value
+
+
+def require_gyro_sign():
+    """陀螺仪符号硬闸门：没测出来就报错，绝不默认 +1。
+
+    GYRO_POSITIVE_DIRECTION 只能在实机 probe_new_hw.py c 段测出后回填 config；
+    悄悄按 +1 处理只会让基于陀螺仪的转向反着走。
+    """
+    sign = config.GYRO_POSITIVE_DIRECTION
+    if sign is None:
+        raise ValueError("GYRO_POSITIVE_DIRECTION is None [TBD]: "
+                         "run probe_new_hw.py section c on the robot, then set it in config.py")
+    return sign

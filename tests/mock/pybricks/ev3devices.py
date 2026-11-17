@@ -56,13 +56,17 @@ class ColorSensor:
 
 
 class TouchSensor:
-    """2026-11-17 硬件 v3：V 形推板顶点的触感。仿真里默认没人按。"""
+    """2026-11-17 硬件 v3：V 形推板顶点的触感。仿真里默认没人按。
+
+    和 ColorSensor 一样返回 Value()：实机上这些读值可能是 awaitable，
+    mock 必须同构，否则"忘了 await"在 PC 上根本测不出来。
+    """
 
     def __init__(self, port):
         self.port = port
 
     def pressed(self):
-        return bool(getattr(SIM_HOLDER.sim, "touch_pressed", False))
+        return Value(lambda: bool(getattr(SIM_HOLDER.sim, "touch_pressed", False)))
 
     def close(self):
         pass
@@ -76,10 +80,10 @@ class GyroSensor:
         self._offset = 0.0
 
     def angle(self):
-        return SIM_HOLDER.sim.odo_angle() - self._offset
+        return Value(lambda: SIM_HOLDER.sim.odo_angle() - self._offset)
 
     def speed(self):
-        return SIM_HOLDER.sim.w
+        return Value(lambda: SIM_HOLDER.sim.w)
 
     def reset_angle(self, angle=0):
         self._offset = SIM_HOLDER.sim.odo_angle() - angle
