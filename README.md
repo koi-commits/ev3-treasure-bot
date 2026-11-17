@@ -61,6 +61,7 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺�
 | 场上转角自标定 + 色标定位 | `mission.py`（`calib`） | 🧪 待实机 |
 | 搜索 + 负载嫌疑 + tap 确认 | `mission.py`（`capture`） | 🧪 待实机，需推板 |
 | 搜索 + 推送 + 交付 | `mission.py`（`full`） | 🧪 待实机，需带侧板的 V 形推板 |
+| **v3：陀螺航向 + 车道扫描 + 触碰捕获** | `mission.py`（`sweep` / `capture` / `full`） | 🧪 仅离线：8 seeds 里 3/8 真推到色标上；轮子压白带未解决（见 `docs/mission-v3.md`） |
 | 推物体负载信号 | `probe_load.py` | 🧪 待实机 |
 | 轮径/轮距标定 | `calibrate_geometry.py` | 🧪 待实机 |
 

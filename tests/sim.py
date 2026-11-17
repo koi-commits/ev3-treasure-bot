@@ -96,25 +96,42 @@ class SimTimeout(Exception):
 
 
 # 车体几何（车体坐标：x 向前，y 向左，原点 = 两轮轴线中点）。全部是假设值，实机量出后改这里。
+#
+# v3（2026-11-17 换官方 Robot Educator 底盘）：几何改为 CB 基准
+# （CB = 两轮轴线中点到前横梁的前向距离 = 27 mm，实测推板最前端 143 mm）：
+#   V 形臂 (CB+16, ±8) -> (CB+80, ±56)；侧墙 y=±56，x ∈ [CB+16, CB+116]；
+#   触碰挡板 x = CB+38（横跨 y=±25 的一小段，物体坐进推板时压在它上面）。
+# 光斑在 (20, 0)，即 sensor_offset 默认 20（与 src/config.py 的实测值一致）。
+# 旧的 apex/plow_depth/plow_half 模型保留（v3=False 时才用），用于对拍历史结果。
 GEOM = dict(
     body_front=45.0, body_back=-80.0, body_half=62.0, wheel_y=57.0,
     plow=True,
-    apex=70.0,          # V 形推板顶点（口袋最深处）—— 在光斑(60)前 10 mm
-    plow_depth=80.0,    # 顶点到臂尖的前向长度
-    plow_half=65.0,     # 臂尖半宽（开口 130 mm，夹角约 78°）
-    side_plates=True,   # 车身侧面延长板：封住"臂外侧 + 车头"形成的凹角（否则物体会卡在臂外侧被推着走）
+    v3=True,
+    cb=27.0,            # 结构参考面前向距离（前横梁）measured 2026-11-17
+    v_near=16.0,        # V 形臂近端 = cb + 16 = 43
+    v_far=80.0,         # V 形臂远端 = cb + 80 = 107
+    v_apex_y=8.0,       # V 形臂近端半宽
+    v_tip_y=56.0,       # V 形臂远端半宽（= 侧墙半宽，通口 112 mm）
+    wall_far=116.0,     # 侧墙前端 = cb + 116 = 143 = PLOW_FRONT_MM（实测）
+    bumper_x=38.0,      # 触碰挡板 = cb + 38 = 65（+ r 33.5 = 98.5 ≈ OBJ_LEAD 100）
+    bumper_half=25.0,   # 触碰挡板半宽
+    apex=70.0,          # 旧模型：V 形推板顶点（口袋最深处）
+    plow_depth=80.0,    # 旧模型：顶点到臂尖的前向长度
+    plow_half=65.0,     # 旧模型：臂尖半宽
+    side_plates=True,   # 车身侧面延长板：封住"臂外侧 + 车头"形成的凹角
 )
 
 
 class Sim:
     def __init__(self, W=1200, H=900, band=40, outside="floor",
-                 start=(600, 450, 0.0), sensor_offset=60.0, spot_r=4.0,
+                 start=(600, 450, 0.0), sensor_offset=20.0, spot_r=4.0,
                  noise=0.15, markers=(), objects=(), obstacles=(),
                  accel=750.0, turn_accel=750.0, odo_dist_scale=1.0, odo_turn_scale=1.0,
                  read_cost_ms=1, buttons=(), seed=0, max_ms=400000,
                  geom=None, contact_mu=0.3, load_noise=2.5, coast_decel=900.0, brake_decel=2000.0,
                  legacy_objects=False, sensor_lat=0.0, battery_mv=7480,
-                 battery_events=()):
+                 battery_events=(), gyro_drift_dpm=1.0, gyro_noise=0.5,
+                 touch_eps=1.0):
         self.W, self.H, self.band = W, H, band
         self.outside = FLOOR if outside == "floor" else WHITE
         self.x, self.y, self.th = start
@@ -168,6 +185,13 @@ class Sim:
         self.push_load = 0.0
         self.wheel_max_out = 0.0    # 轮子触地点越过白边内沿的最大距离
         self.object_out = False     # 有物体中心越过白边外沿（推出场地）
+        # 陀螺仪：角度 = 真实航向积分 + 漂移（deg/min，恒定速率）+ 每次读数的白噪声
+        self.gyro_drift_dpm = gyro_drift_dpm
+        self.gyro_noise = gyro_noise
+        self.gyro_deg = 0.0
+        # 触碰挡板：由 step() 每步更新（mock 的 TouchSensor.pressed() 读这个属性）
+        self.touch_pressed = False
+        self.touch_eps = touch_eps
         # 可选采样钩子，供学习数据收集使用。默认关闭，既有测试/脚本行为不变。
         # 签名 hook(sim)；采集器不得改写运动/接触状态。
         self.step_hook = None
@@ -287,6 +311,53 @@ class Sim:
             value = voltage_mv
         return value
 
+    # ---------------------------------------------------------- gyro / touch
+    def gyro_raw(self):
+        """陀螺仪角度（不含读数噪声），用于 reset 记账。"""
+        return self.gyro_deg
+
+    def gyro_angle(self):
+        """陀螺仪角度（deg，正 = 顺时针/右转，与 DriveBase 符号一致）。"""
+        return self.gyro_deg + self.rng.gauss(0, self.gyro_noise)
+
+    def gyro_rate(self):
+        """角速度（deg/s）——实机 GyroSensor.speed() 的对应量。"""
+        return self.w + self.rng.gauss(0, self.gyro_noise)
+
+    def reset_gyro(self, angle=0.0):
+        self.gyro_deg = float(angle)
+
+    def _touch_update(self):
+        """触碰挡板是否被物体压住（挡板 = 车体坐标 x = cb+38、|y| <= 25 的窄条，装在漏斗窄端）。
+
+        V 形臂从 cb+16（窄，±8）张开到 cb+80（宽，±56）：物体被往前推时顺着收敛的臂
+        滑到窄端，最终顶在挡板上 —— 挡板是"坐进推板"的物理证据。所以判定用座位区域：
+        前向位置 f <= cb+38+r（接触面），横向 |l| <= 25+r。
+        物体滑出侧壁或跑到开口前面 -> 不再压下 -> 判 lost。
+        """
+        g = self.g
+        self.touch_pressed = False
+        if not g.get("v3"):
+            return
+        c, s = math.cos(self.th), math.sin(self.th)
+        cb = g["cb"]
+        # 触碰开关装在漏斗窄端的挡板上（物理位置 x = cb+bumper_x）。轮胎只有真正"坐进"
+        # 漏斗、顶到挡板上才会压住它：中心前向位置 ≈ cb+bumper_x+r，横向被两臂收进通口。
+        # 不能用"整条 V 臂范围"当条件：那样从车道旁边 55 mm 擦过也会算压住，捕获立刻
+        # 触发、随后转个弯物体就掉了（实测 carry sweep 每条车道都 lost 0）。
+        for o in self.objects:
+            if o["out"]:
+                continue
+            dx, dy = o["x"] - self.x, o["y"] - self.y
+            f = dx * c + dy * s
+            l = -dx * s + dy * c
+            seat = g["cb"] + g["bumper_x"] + o["r"]   # 顶到挡板时的中心位置
+            lo = seat - 12.0 - self.touch_eps
+            hi = seat + 20.0 + self.touch_eps
+            if lo <= f <= hi and abs(l) <= g["bumper_half"] + o["r"] - 6.0:
+                self.touch_pressed = True
+                return
+
     # ---------------------------------------------------------- physics
     def _targets(self):
         if self.man is None:
@@ -348,10 +419,12 @@ class Sim:
         self.x, self.y, self.th = nx, ny, nth
         self.dist_acc += moved
         self.ang_acc += self.w * dt
+        self.gyro_deg += (self.w + self.gyro_drift_dpm / 60.0) * dt
         if self.legacy_objects:
             self._objects_legacy(moved)
         else:
             self._push_objects(ox, oy, oth, dt_ms)
+        self._touch_update()
         for i in (0, 1):
             self.load_drift[i] += -0.01 * self.load_drift[i] + self.rng.gauss(0, 0.3)
 
@@ -380,7 +453,18 @@ class Sim:
         segs = []
         fr, bk, bh = g["body_front"], g["body_back"], g["body_half"]
         segs += [((fr, -bh), (fr, bh)), ((bk, -bh), (bk, bh)), ((bk, bh), (fr, bh)), ((bk, -bh), (fr, -bh))]
-        if g["plow"]:
+        if g.get("v3"):
+            cb = g["cb"]
+            near, far = cb + g["v_near"], cb + g["v_far"]
+            ay, ty = g["v_apex_y"], g["v_tip_y"]
+            wall = cb + g["wall_far"]
+            bx, bhh = cb + g["bumper_x"], g["bumper_half"]
+            segs += [((near, ay), (far, ty)),        # 左 V 形臂（前宽后窄 -> 口袋）
+                     ((near, -ay), (far, -ty)),      # 右 V 形臂
+                     ((near, ty), (wall, ty)),       # 左侧墙
+                     ((near, -ty), (wall, -ty)),     # 右侧墙
+                     ((bx, -bhh), (bx, bhh))]        # 触碰挡板（窄条，物体坐进来时压上）
+        elif g["plow"]:
             ax, dp, ph = g["apex"], g["plow_depth"], g["plow_half"]
             segs += [((ax, 0.0), (ax + dp, ph)), ((ax, 0.0), (ax + dp, -ph)),
                      ((fr, 0.0), (ax, 0.0))]      # 推板支架
@@ -479,6 +563,10 @@ class Sim:
         dx, dy = o["x"] - self.x, o["y"] - self.y
         f = dx * c + dy * s
         l = -dx * s + dy * c
+        if g.get("v3"):
+            # v3：口袋 = 两臂之间（cb+16 .. cb+112），横向在侧墙内
+            cb = g["cb"]
+            return cb + g["v_near"] <= f <= cb + g["wall_far"] and abs(l) <= g["v_tip_y"]
         k = (f - g["apex"]) / g["plow_depth"]
         return 0 < k <= 1.1 and abs(l) <= k * g["plow_half"] + 2
 
