@@ -96,12 +96,32 @@ def summarize(text):
     }
 
 
+def _read_log(path):
+    """Read a captured log whatever Windows shell redirection produced.
+
+    ``pwsh cmd > logs\\x.txt`` writes UTF-16LE with a BOM on this machine, while
+    earlier runs produced plain UTF-8. Decoding UTF-16 as UTF-8 silently yields
+    NUL-separated garbage, every ``startswith("SHADOW_RESULT ")`` fails, and the
+    report looks like "0 trials attempted" instead of an error - so sniff the
+    BOM instead of trusting one encoding.
+    """
+    with open(path, "rb") as f:
+        raw = f.read()
+    if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+        return raw.decode("utf-16")
+    if raw.startswith(b"\xef\xbb\xbf"):
+        return raw.decode("utf-8-sig")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode("utf-16-le", errors="replace")
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("log")
     args = p.parse_args()
-    with open(args.log, "r", encoding="utf-8", errors="replace") as f:
-        report = summarize(f.read())
+    report = summarize(_read_log(args.log))
     print(report)
 
 
