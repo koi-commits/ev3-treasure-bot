@@ -18,12 +18,17 @@ PROJECT_MODULES = ("config", "hardware", "common", "edge", "fsm", "sensing",
                    "contact_inference", "contact_weights", "probe_tap_shadow",
                    "tap_probe_weights", "contact_features", "probe_new_hw")
 
+# 仿真里陀螺仪读值的符号是确定的（sim.gyro_angle() 与 DriveBase 同号）= 实机已实测过符号。
+# 实机 config 里 GYRO_POSITIVE_DIRECTION 仍是 None，mission 会因此直接报错 —— 那是刻意的，
+# 不允许"没实测就默认 +1"。所以在仿真里统一补成 1.0，个别用例可覆盖回 None 来验证报错。
+SIM_DEFAULTS = {"GYRO_POSITIVE_DIRECTION": 1.0}
+
 
 def fresh_config(**overrides):
     for m in PROJECT_MODULES:
         sys.modules.pop(m, None)
     cfg = importlib.import_module("config")
-    for k, v in overrides.items():
+    for k, v in dict(SIM_DEFAULTS, **overrides).items():
         if not hasattr(cfg, k):
             raise AttributeError("config has no " + k)
         setattr(cfg, k, v)

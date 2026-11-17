@@ -73,20 +73,24 @@ class TouchSensor:
 
 
 class GyroSensor:
-    """2026-11-17 硬件 v3：陀螺仪。仿真里直接复用里程计航向（无漂移）。"""
+    """2026-11-17 硬件 v3：陀螺仪。
+
+    仿真里读 sim.gyro_angle()（真实航向 + 偏置漂移 + 读数噪声），而不是里程计航向 ——
+    否则 "陀螺漂移" 这类场景根本没有意义。reset_angle 用不含噪声的 gyro_raw() 记账。
+    """
 
     def __init__(self, port):
         self.port = port
         self._offset = 0.0
 
     def angle(self):
-        return Value(lambda: SIM_HOLDER.sim.odo_angle() - self._offset)
+        return Value(lambda: SIM_HOLDER.sim.gyro_angle() - self._offset)
 
     def speed(self):
-        return Value(lambda: SIM_HOLDER.sim.w)
+        return Value(lambda: SIM_HOLDER.sim.gyro_rate())
 
     def reset_angle(self, angle=0):
-        self._offset = SIM_HOLDER.sim.odo_angle() - angle
+        self._offset = SIM_HOLDER.sim.gyro_raw() - angle
 
     def close(self):
         pass

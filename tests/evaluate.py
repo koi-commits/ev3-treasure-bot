@@ -76,10 +76,11 @@ def object_near_edge(rng, aw=W, ah=H):
     return o
 
 
-# 仿真的车体几何仍是 v3 之前的（tests/sim.py：sensor_offset=60、GEOM 的 plow apex/depth）：
-# 光斑前伸 60 mm、物体落座 110 mm。2026-11-17 换底盘后 config 里是新的图纸标称值
-# （52 / 139，未实测），仿真必须对拍"仿真自己的几何"，否则色标映射与交付目标点会系统性偏。
-SIM_GEOM = dict(SENSOR_OFFSET_MM=60.0, SENSOR_LATERAL_MM=0.0, OBJ_LEAD_MM=110.0)
+# 仿真的车体几何现在与 src/config.py 一致（2026-11-17 实测：光斑 (20,0)、推板前端 143、
+# 物体落座中心 100），所以不再覆盖几何参数 —— 只保留"仿真里陀螺符号确定"这一条
+# （相当于实机已经跑过 probe_new_hw 的 c 段；实机 config 仍为 None，mission 会直接报错，
+# 这是刻意的）。如果哪天二者又分叉，在这里一次性覆盖，不要散落到各个测试里。
+SIM_GEOM = dict(GYRO_POSITIVE_DIRECTION=1.0)
 
 
 # ---------------------------------------------------------------- 单次运行

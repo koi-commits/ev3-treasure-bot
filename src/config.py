@@ -231,13 +231,24 @@ ARENA_DIAG_MM = 1580            # 实测场地内部 1236 x 723 mm -> 对角线 
 RETURN_IN_MM = 150              # 穿过白带回到场内后再前进这么多
 
 # 到达终点 / 放下物体
-FINISH_BACK_MM = 100            # 送达后倒车离开（V 形推板倒车 = 把物体留在原地）
+FINISH_BACK_MM = 150            # 送达后倒车离开（V 形推板倒车 = 把物体留在原地）。
+                                # 150 而不是 100：轮胎要彻底脱离推板，倒少了会被推板带走。
 
-# 几何 —— 推送与交付要用（[TBD] 实机量）。下面 4 个是 2026-11-17 v3 图纸标称值，未在实物上量。
-SENSOR_OFFSET_MM = 52           # [TBD] 光斑中心到两轮轴线中点的前向距离（M1）
-SENSOR_LATERAL_MM = 0           # [TBD] 光斑中心相对车体中线的横向偏移，右为正（M10）
-OBJ_LEAD_MM = 139               # [TBD] 物体卡在推板顶点时，物体中心到两轮轴线中点的前向距离（M8）
-PLOW_FRONT_MM = 188             # [TBD] 推板最前端到两轮轴线中点的前向距离（M11）
+# 几何 —— 推送与交付要用。以下 4 个是 2026-11-17 换底盘后**实测**值（Robot Educator 底盘、
+# 官方 Color Sensor Down 装在 S3、官方陀螺 S2、自定义 V 形推板 + 顶点触碰 S1）。
+# 约定：从两轮轴线中点起，向前为正；横向右为正。
+# 自检（tests/test_config.py 会检查，改参数时别破坏）：
+#   OBJ_LEAD_MM + TIRE_RADIUS_MM <= PLOW_FRONT_MM   （物体坐在推板里，不能伸到推板外面）
+#   SENSOR_OFFSET_MM < PLOW_FRONT_MM                （光斑在推板后方，先看见边再压上去）
+SENSOR_OFFSET_MM = 20           # measured 2026-11-17 光斑中心到两轮轴线中点的前向距离（M1）
+SENSOR_LATERAL_MM = 0           # measured 2026-11-17 光斑中心相对车体中线的横向偏移，右为正（M10）
+OBJ_LEAD_MM = 100               # [TBD] 物体坐进推板后，物体中心到两轮轴线中点的前向距离（M8）
+                                # 待复核：必须满足 OBJ_LEAD_MM + 33.5 <= PLOW_FRONT_MM
+PLOW_FRONT_MM = 143             # measured 2026-11-17 推板最前端到两轮轴线中点的前向距离（M11）
+                                # => 前横梁 CB = 143 - 116 = 27 mm（见 tests/sim.py GEOM）
+TIRE_RADIUS_MM = 33.5           # measured 2026-11-17 目标物 = 平放 LEGO 轮胎 Ø67 x 33
+TIRE_DIAMETER_MM = 67.0
+SENSOR_HEIGHT_MM = 8.0          # measured 2026-11-17 颜色传感器镜面离地高度（只记录，不参与计算）
 
 # 搜索：随机反弹覆盖（直行到边 -> 退 -> 随机转 100–170°）。不依赖几何标定。
 # （往返扫描线方案在仿真中成功率更低且有出界，已删除，见 docs/offline-2026-11-03.md）
@@ -264,7 +275,8 @@ MAP_MS = 9000                   # 首次确认终点后继续沿边走这么久�
 MARKER_INSET_MM = 15            # [TBD] 目标点 = 色标中心估计再往场内移这么多（色标深度/4 左右）
 APPROACH_STANDOFF_MM = 250      # 交付前先到目标点正前方（场内侧）这么远的待命点，再直线推进
 # 场上转角自标定（full 模式，记录终点后在同一条边上做一次，约 20 s）
-SELF_CAL = True
+SELF_CAL = False                # v3 默认不走整段自标定（含原地 720° 旋转）；要复现旧路径把
+                                # USE_SELF_CAL 也打开（见第 11 节），两处都开才会执行。
 SELFCAL_IN_MM = 160             # 退到离边这么远再原地转（光斑转圈不会碰到白边）
 SELFCAL_SPIN = 720              # 原地转的角度（越大越准，误差 ∝ 1/转角）
 SELFCAL_FOLLOW_MS = 9000        # 回到边上沿边走多久来测边方向
@@ -281,6 +293,64 @@ CARRY_SPEED = 70                # mm/s
 CARRY_TURN_RATE = 35            # deg/s，弧线转向（半径约 CARRY_SPEED/rad(rate) ≈ 115 mm）
 PURSUIT_GAIN = 1.5              # 纯追踪：转向率(deg/s) = 增益 × 相对方位角(deg)，限幅 CARRY_TURN_RATE
 CARRY_ESCAPE_SPEED = 40         # mm/s，推送中沿边 ESCAPE 用前进急弯（0 = 已验证的原地转）
+
+
+# ------------------------------------------------------------
+# 11) Mission v3（陀螺航向 + 车道扫描 + 触碰捕获）—— 2026-11-17 换底盘后
+# ------------------------------------------------------------
+# 旧的四条路径（负载嫌疑 + tap/seat 确认、learned_capture/GRU 影子、对角线反弹搜索、
+# 720° 原地自标定）文件都留着，但默认路径上不再走：下面四个开关默认全 False。
+USE_LOAD_CAPTURE = False        # 旧：LoadMonitor + tap_confirm 座位确认
+USE_LEARNED_CONTACT = False     # 旧：learned_capture / contact_inference / GRU 影子
+USE_BOUNCE_SEARCH = False       # 旧：bounce() 对角线随机反弹搜索
+USE_SELF_CAL = False            # 旧：calibrate_and_map() 原地 720° 自标定
+
+# ---- 航向：陀螺仪 ----
+USE_GYRO = True                 # Odometry 的航向用 gyro.angle()，距离仍用 drive.distance()
+GYRO_SETTLE_MS = 2000           # 起步先静置这么久再 reset 陀螺（EV3 陀螺上电有漂移）
+KP_HEADING = 2.0                # hold_heading 的比例增益（deg/s per deg）
+MAX_TURN_RATE = 120             # hold_heading 的转向率限幅（deg/s）
+
+# ---- 捕获：触碰传感器 ----
+USE_TOUCH = True                # 捕获 = 触碰挡板被压住（不再用负载嫌疑 + tap 确认）
+LOST_MS = 400                   # 推送中连续这么久没压住 = 物体丢了
+
+# ---- 定场地轴向：在边上采样白带点拟合（不贴边巡线） ----
+# 理由：光斑只前伸 20 mm，而轮子横向在 ±57 mm，贴边巡线时内侧轮心必然越过 40 mm 白带。
+EDGE_PROBE_N = 4                # 采样几个白带点（三点定线，多采一个当冗余）
+EDGE_PROBE_MM = 900.0           # 每次采样直行的上限（防止在场上空跑太远）
+EDGE_PROBE_BACKOFF_MM = 120.0   # 每次采样后的倒车量（要够大，采样点基线才有 100 mm 以上）
+EDGE_PROBE_TURN_DEG = 40.0      # 第二次采样前的转向（两个白带点的横向间隔 = BACKOFF * tan）
+EDGE_PROBE_SHIFT_MM = 260.0     # 第三次采样前沿边挪的距离（基线越长，拟合方向越准）
+
+# ---- 找色标：沿场地内侧的"垂直撞边"巡逻 ----
+# 不用贴边巡线：光斑只比轴心前伸 20 mm，而轮子横向在 ±57 mm，车头平行白带时内侧轮
+# 会压进 40 mm 宽的白带（仿真实测 51-57 mm ⇒ 轮子出界）。垂直撞边时两个轮子和光斑
+# 的离边深度一致，轮子最多跟光斑一样深，永远在白带内沿以里。
+EDGE_WALK_MM = 200.0            # 每次沿边走多远（要小于色标长度，否则两撞之间会跳过色标）
+EDGE_WALK_MS = 300000.0         # 一圈走完的上限（整圈周长约 3.9 m，按 100 mm/s 算 40 s）
+
+# ---- 车道扫描（boustrophedon，从边上出发、车道垂直于这条边） ----
+LANE_SPACING_MM = 90            # [TBD] 相邻车道间距；推板通口约 105 mm，必须小于通口
+LANE_MAX_MM = 1236              # 单条车道的上限=场地内部长边（车道必然在这么远内撞到对面白带）
+LANE_MAX_COUNT = 40             # 车道数上限
+LANE_CLEAR_MM = 220.0           # 开第一条车道前，沿车道方向先开这么远离开白带 [TBD]
+LANE_END_MM = 150.0             # 车道一出发不到这么远就见白 = 这条墙到头了（转角的白带）
+SWEEP_PREVIEW_LANES = 4         # MISSION_MODE="sweep" 只扫几条车道（3–5，用来观察色标估计）
+BACKOFF_MM = 80                 # 到边/到围栏后先倒车这么多，再转向
+GEOFENCE_PAD_MM = 40            # 推送中围栏：在场地边界内侧再留这么多
+DELIVER_TOL_MM = 8.0            # 交付收尾：物体中心距目标点小于这么多就停车（±10 mm 判定窗）
+SETTLE_FOLLOW_MS = 8000.0       # 旧做法：定轴向之前先沿边走这么久（v3 已改 edge_probe，留作对照）
+MARKER_FIND_MS = 120000.0       # 旧做法：full 先沿边走一圈找色标（v3 改由扫描覆盖，留作对照）
+
+# ---- 色标（红点）估计 ----
+MARKER_HIT_DEDUPE_MM = 15       # 相邻两次红点记录的最小间距
+MARKER_MIN_HITS = 3             # 少于这么多个红点就不认为"知道色标位置"
+MARKER_REJECT_MM = 150          # 距中位数超过这么远的红点当离群点丢掉
+
+# ---- 场地先验（[TBD] 实测：内部 1236 x 723 mm） ----
+ARENA_INTERIOR_W_MM = 1236
+ARENA_INTERIOR_H_MM = 723
 
 
 # ------------------------------------------------------------
