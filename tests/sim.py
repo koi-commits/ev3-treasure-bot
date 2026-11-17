@@ -104,7 +104,7 @@ class SimTimeout(Exception):
 # 光斑在 (20, 0)，即 sensor_offset 默认 20（与 src/config.py 的实测值一致）。
 # 旧的 apex/plow_depth/plow_half 模型保留（v3=False 时才用），用于对拍历史结果。
 GEOM = dict(
-    body_front=45.0, body_back=-80.0, body_half=62.0, wheel_y=57.0,
+    body_front=45.0, body_back=-80.0, body_half=62.0, wheel_y=52.0,
     plow=True,
     v3=True,
     cb=27.0,            # 结构参考面前向距离（前横梁）measured 2026-11-17
@@ -184,6 +184,7 @@ class Sim:
         self.load_drift = [0.0, 0.0]
         self.push_load = 0.0
         self.wheel_max_out = 0.0    # 轮子触地点越过白边内沿的最大距离
+        self.robot_out = False      # Both wheel centres outside at the SAME instant.
         self.object_out = False     # 有物体中心越过白边外沿（推出场地）
         # 陀螺仪：角度 = 真实航向积分 + 漂移（deg/min，恒定速率）+ 每次读数的白噪声
         self.gyro_drift_dpm = gyro_drift_dpm
@@ -433,9 +434,12 @@ class Sim:
         self.max_out_center = max(self.max_out_center, self._outside_dist(self.x, self.y))
         c, s_ = math.cos(self.th), math.sin(self.th)
         wy = self.g["wheel_y"]
+        wheel_out = []
         for sgn in (-1, 1):
             wx, wyy = self.x - sgn * wy * s_, self.y + sgn * wy * c
-            self.wheel_max_out = max(self.wheel_max_out, self._outside_dist(wx, wyy))
+            wheel_out.append(self._outside_dist(wx, wyy))
+        self.wheel_max_out = max(self.wheel_max_out, max(wheel_out))
+        self.robot_out = self.robot_out or min(wheel_out) > self.band
         self.t += dt_ms
         if self.step_hook is not None:
             self.step_hook(self)
@@ -615,16 +619,29 @@ class Sim:
             coro.close()
 
 
-def rect_arena_marker(W, H, where="right", length=150, depth=60, surf=RED_MARK):
-    """在场地内侧贴边放一块色标（贴着白边，伸进场地 depth mm）。"""
+def rect_arena_marker(W, H, where="right", side_mm=150.0, offset=0.0, along=None,
+                      surf=RED_MARK, band=40.0):
+    """A square red paper lying ON TOP of the white boundary line.
+
+    The paper hides the white band underneath.  `offset` is the paper centre's
+    offset from the white-line centreline, inward positive; the caller keeps it
+    within +/- side/4 so the paper always covers the whole 40 mm line.  `along`
+    is the centre coordinate along the wall (default: middle of that side).
+    """
+    s = side_mm
+    half = band / 2.0
     if where == "right":
-        y0 = H / 2 - length / 2
-        return (W - depth, y0, W, y0 + length, surf)
+        c = W + half - offset
+        a = H / 2.0 if along is None else along
+        return (c - s/2.0, a - s/2.0, c + s/2.0, a + s/2.0, surf)
     if where == "top":
-        x0 = W / 2 - length / 2
-        return (x0, H - depth, x0 + length, H, surf)
+        c = H + half - offset
+        a = W / 2.0 if along is None else along
+        return (a - s/2.0, c - s/2.0, a + s/2.0, c + s/2.0, surf)
     if where == "left":
-        y0 = H / 2 - length / 2
-        return (0, y0, depth, y0 + length, surf)
-    x0 = W / 2 - length / 2
-    return (x0, 0, x0 + length, depth, surf)
+        c = -half + offset
+        a = H / 2.0 if along is None else along
+        return (c - s/2.0, a - s/2.0, c + s/2.0, a + s/2.0, surf)
+    c = -half + offset
+    a = W / 2.0 if along is None else along
+    return (a - s/2.0, c - s/2.0, a + s/2.0, c + s/2.0, surf)
