@@ -77,6 +77,18 @@ def object_near_edge(rng, aw=W, ah=H):
     return o
 
 
+def object_near_start(rng, aw, ah, start):
+    """Tyre 150-400 mm ahead of the start pose, lateral +-60 mm, kept in the arena."""
+    sx, sy, th = start
+    d = rng.uniform(150, 400)
+    lat = rng.uniform(-60, 60)
+    x = sx + d * math.cos(th) - lat * math.sin(th)
+    y = sy + d * math.sin(th) + lat * math.cos(th)
+    if not (60 <= x <= aw-60 and 60 <= y <= ah-60):
+        return None
+    return {"x": x, "y": y, "r": 33.5, "load": 20}
+
+
 # 仿真的车体几何现在与 src/config.py 一致（2026-11-17 实测：光斑 (20,0)、推板前端 143、
 # 物体落座中心 100），所以不再覆盖几何参数 —— 只保留"仿真里陀螺符号确定"这一条
 # （相当于实机已经跑过 probe_new_hw 的 c 段；实机 config 仍为 None，mission 会直接报错，
@@ -100,7 +112,13 @@ def run_one(seed, mode="edge_to_finish", start=start_normal, obj=object_interior
     where = rng.choice(["right", "top", "left", "bottom"])
     objs = []
     if mode == "full":
-        o = obj(rng, aw, ah)
+        if obj is object_near_start:
+            o = object_near_start(rng, aw, ah, st)
+            while o is None:
+                st = start(rng, aw, ah)
+                o = object_near_start(rng, aw, ah, st)
+        else:
+            o = obj(rng, aw, ah)
         o.update(obj_kw or {})
         objs = [o]
     if marker_offset is None:

@@ -11,6 +11,8 @@ class Diagnostics:
         self.swept = set()
         self.wheel_max = 0
         self.wheel_phase = "startup"
+        self.robot_out_phase = None
+        self.carry_inplace_turns = 0
         self.object_phases = {}
         self.last_sample = -100
 
@@ -20,6 +22,9 @@ class Diagnostics:
         if sim.wheel_max_out > self.wheel_max:
             self.wheel_max = sim.wheel_max_out
             self.wheel_phase = phase
+        if sim.robot_out and self.robot_out_phase is None:
+            self.robot_out_phase = phase
+        self.carry_inplace_turns = getattr(ctx, "carry_inplace_turns", 0)
         for i, obj in enumerate(sim.objects):
             if obj["out"] and i not in self.object_phases:
                 self.object_phases[i] = phase
@@ -41,4 +46,6 @@ class Diagnostics:
         return dict(coverage=len(self.swept)/(self.nx*self.ny),
                     coverage_grid="\n".join("".join("." if (i,j) in self.swept else "#"
                         for i in range(self.nx)) for j in reversed(range(self.ny))),
-                    wheel_max_phase=self.wheel_phase, object_out_phases=self.object_phases)
+                    wheel_max_phase=self.wheel_phase, robot_out_phase=self.robot_out_phase,
+                    carry_inplace_turns=self.carry_inplace_turns,
+                    object_out_phases=self.object_phases)

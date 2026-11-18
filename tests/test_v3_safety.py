@@ -113,7 +113,7 @@ class ControllerSafetyTests(unittest.TestCase):
             events.append(("back", mm))
         async def noop(*args):
             pass
-        env = mission_functions("rotate", ctx=NS(use_gyro=True, white_backoff=30),
+        env = mission_functions("rotate", ctx=NS(carrying=False, use_gyro=True, white_backoff=30),
             config=NS(AXLE_TRACK_MM=104), straight=straight, odom_update=noop,
             _settle=noop, drive=NS(turn=lambda d,wait: events.append(("turn",d))))
         asyncio.run(env["rotate"](90))
@@ -121,7 +121,7 @@ class ControllerSafetyTests(unittest.TestCase):
 
     def test_gyro_alignment_waits_for_three_stable_samples(self):
         readings = iter([20, 5, 1, 0, -1])
-        ctx = NS(odom=NS(heading=20), now=lambda: 0)
+        ctx = NS(target=None, odom=NS(heading=20), now=lambda: 0)
         seen = []
         async def tick():
             ctx.odom.heading = next(readings)
@@ -129,7 +129,7 @@ class ControllerSafetyTests(unittest.TestCase):
         async def wait(ms):
             pass
         env = mission_functions("gyro_align", ctx=ctx, tick=tick, wait=wait,
-            PERIOD=50, wrap180=lambda x:x, clamp=lambda x,lo,hi:max(lo,min(hi,x)),
-            drive=NS(brake=lambda:None, drive=lambda v,w:self.assertEqual(v,0)))
+            config=NS(CARRY_SPEED=70,CARRY_TURN_RATE=35), PERIOD=50, wrap180=lambda x:x, clamp=lambda x,lo,hi:max(lo,min(hi,x)),
+            drive=NS(brake=lambda:None, drive=lambda v,w:self.assertGreater(v,0)))
         asyncio.run(env["gyro_align"](0))
         self.assertEqual(len(seen), 5)

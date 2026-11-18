@@ -9,16 +9,27 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, "mock"), os.path.join(HERE, "..", "src")]
 import evaluate as E
 
-LABELS = ("lane", "carry", "marker_scan", "deliver", "other")
-PHASE_LABEL = {"edge_walk": "marker_scan"}
+LABELS = ("seek", "early_carry", "edge_probe", "edge_walk", "lane", "carry", "marker_scan", "marker_probe", "deliver", "other")
+PHASE_LABEL = {}
+
+
+def phase_label(phase):
+    return PHASE_LABEL.get(phase, phase if phase in LABELS else "other")
 
 
 def object_out_by_phase(runs):
     out = dict((label, 0) for label in LABELS)
     for r in runs:
         for phase in r.get("object_out_phases", {}).values():
-            label = PHASE_LABEL.get(phase, phase if phase in LABELS else "other")
-            out[label] += 1
+            out[phase_label(phase)] += 1
+    return out
+
+
+def robot_out_by_phase(runs):
+    out = dict((label, 0) for label in LABELS)
+    for r in runs:
+        if r.get("robot_out") and r.get("robot_out_phase") is not None:
+            out[phase_label(r["robot_out_phase"])] += 1
     return out
 
 
@@ -36,11 +47,15 @@ def row(name, runs):
               ("success", "acceptable", "object_out", "robot_out", "wheel_beyond", "false_claim")]
     times = [r["t"] for r in runs]
     err_med, err_max = delivery_stats(runs)
-    print("| %s | %d | %s | %.0f / %.0f s | %.1f%% | %s / %s |" %
-          (name, n, " | ".join(map(str, counts)), sum(times)/n, max(times),
+    inplace = sum(r.get("carry_inplace_turns", 0) for r in runs)
+    print("| %s | %d | %s | %d | %.0f / %.0f s | %.1f%% | %s / %s |" %
+          (name, n, " | ".join(map(str, counts)), inplace, sum(times)/n, max(times),
            100*sum(r["coverage"] for r in runs)/n, err_med, err_max), flush=True)
     phases = object_out_by_phase(runs)
     print("  - object_out by phase: " + ", ".join(
+        "%s=%d" % (k, phases[k]) for k in LABELS), flush=True)
+    phases = robot_out_by_phase(runs)
+    print("  - robot_out by phase: " + ", ".join(
         "%s=%d" % (k, phases[k]) for k in LABELS), flush=True)
 
 
@@ -58,9 +73,11 @@ def main():
                              ("MARKER_SIDE_MM", args.marker_side)) if v is not None}
     results = {}
     print("| scenario | n | success | acceptable | object_out | robot_out | wheel_beyond(info) "
-          "| false_claim | mean / max time | coverage | delivery err med / max mm |", flush=True)
+          "| false_claim | carry in-place turns | mean / max time | coverage "
+          "| delivery err med / max mm |", flush=True)
     for name, kw in (("interior", {}), ("near_edge", dict(obj=E.object_near_edge)),
-                     ("marker_corner", dict(corner=True))):
+                     ("marker_corner", dict(corner=True)),
+                     ("near_start", dict(obj=E.object_near_start))):
         runs = [E.run_one(i, mode="full", cfg=cfg, marker_side=args.marker_side, **kw)
                 for i in range(args.seeds)]
         row(name, runs)
