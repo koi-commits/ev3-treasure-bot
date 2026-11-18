@@ -123,12 +123,17 @@ async def main():
         await wait(200)
 
         tele = Tele(threshold)
+        opts = dict(speed=config.FOLLOW_SPEED)
+        if config.FOLLOW_PROFILE == "v3_sim":
+            speed, steer, rate, escape, clear = config.V3_SIM_FOLLOW
+            opts = dict(speed=speed, approach_steer=steer, turn_rate=rate,
+                        escape_ms=escape, clear_ms=clear)
         twists = await edge.follow_edge_bangbang(
             threshold=threshold,
-            speed=config.FOLLOW_SPEED,
             side=-1,
             max_ms=FOLLOW_MS,
             on_tick=tele.tick,
+            **opts,
         )
         print("distance", int(drive.distance()), "mm   edge_twists", twists)
         tele.report()

@@ -20,3 +20,5 @@ Thumbs.db
 # Generated archives
 *.zip
 *.bundle
+# Matrix receipts: reproduce with tests/matrix_v3.py; keep them out of git
+docs/matrix-v3-*.json

@@ -17,9 +17,9 @@ def sig(surf):
 
 mode = sys.argv[1] if len(sys.argv) > 1 else "edge"
 W, H = 1200, 900
-objs = [{"x": 700, "y": 600, "r": 25, "load": 40}] if mode == "full" else [{"x": 250, "y": 650, "r": 25, "load": 40}] if mode == "full2" else []
+objs = [{"x": 700, "y": 600, "r": 33.5, "load": 40}] if mode == "full" else [{"x": 250, "y": 650, "r": 33.5, "load": 40}] if mode == "full2" else []
 s = Sim(W=W, H=H, start=(400, 300, 0.7), seed=3, buttons=[(100, 300, Button.RIGHT)],
-        markers=[rect_arena_marker(W, H, "right")], objects=objs, max_ms=700000)
+        markers=[rect_arena_marker(W, H, "right")], objects=objs, max_ms=910000)
 import config
 if mode == "demo":
     import demo_edge  # noqa: F401
@@ -28,7 +28,8 @@ else:
     config.RGB_EDGE_BRIGHT = 14.0
     config.SIGNATURES = {"floor": sig(FLOOR), "white": sig(WHITE), "finish": sig(RED_MARK)}
     config.FOLLOW_MAX_MS = 150000
-    config.MISSION_MAX_MS = 600000
+    config.MISSION_MAX_MS = 900000
+    config.GYRO_POSITIVE_DIRECTION = 1.0
     if mode.startswith("full"):
         config.MISSION_MODE = "full"
     import mission  # noqa: F401  （导入即运行 run_task(main())）

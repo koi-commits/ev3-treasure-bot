@@ -1,31 +1,89 @@
-"""20-seed matrix for the v3 controller (offline only). Runs two scenarios x 20 seeds."""
+"""Reproducible offline matrix, JSON receipts and cell-centre coverage maps."""
+import argparse
+import json
 import os
 import sys
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, "mock"), os.path.join(HERE, "..", "src")]
-os.chdir(os.path.join(HERE, ".."))
+import evaluate as E
 
-import evaluate as E  # noqa: E402
+LABELS = ("seek", "early_carry", "edge_probe", "edge_walk", "lane", "carry", "marker_scan", "marker_probe", "deliver", "other")
+PHASE_LABEL = {}
+
+
+def phase_label(phase):
+    return PHASE_LABEL.get(phase, phase if phase in LABELS else "other")
+
+
+def object_out_by_phase(runs):
+    out = dict((label, 0) for label in LABELS)
+    for r in runs:
+        for phase in r.get("object_out_phases", {}).values():
+            out[phase_label(phase)] += 1
+    return out
+
+
+def robot_out_by_phase(runs):
+    out = dict((label, 0) for label in LABELS)
+    for r in runs:
+        if r.get("robot_out") and r.get("robot_out_phase") is not None:
+            out[phase_label(r["robot_out_phase"])] += 1
+    return out
+
+
+def delivery_stats(runs):
+    errs = [r["delivery_error"] for r in runs if r["success"]]
+    if not errs:
+        return "-", "-"
+    errs.sort()
+    return "%.1f" % errs[len(errs) // 2], "%.1f" % errs[-1]
 
 
 def row(name, runs):
     n = len(runs)
-    succ = sum(1 for r in runs if r["success"])
-    acc = sum(1 for r in runs if r["acceptable"])
-    wheel = sum(1 for r in runs if r["wheel_beyond"])
-    out = sum(1 for r in runs if r["object_out"])
-    claim = sum(1 for r in runs if r["claim"] and not r["success"])
-    ts = sorted(r["t"] for r in runs)
-    med = ts[len(ts) // 2] if ts else 0.0
-    print("%-18s %2d seeds | succ %2d/%2d | acc %2d | wheel_beyond %2d | obj_out %2d | false_claim %2d | median %5.0f s"
-          % (name, n, succ, n, acc, wheel, out, claim, med))
+    counts = [sum(bool(r[k]) for r in runs) for k in
+              ("success", "acceptable", "object_out", "robot_out", "wheel_beyond", "false_claim")]
+    times = [r["t"] for r in runs]
+    err_med, err_max = delivery_stats(runs)
+    inplace = sum(r.get("carry_inplace_turns", 0) for r in runs)
+    print("| %s | %d | %s | %d | %.0f / %.0f s | %.1f%% | %s / %s |" %
+          (name, n, " | ".join(map(str, counts)), inplace, sum(times)/n, max(times),
+           100*sum(r["coverage"] for r in runs)/n, err_med, err_max), flush=True)
+    phases = object_out_by_phase(runs)
+    print("  - object_out by phase: " + ", ".join(
+        "%s=%d" % (k, phases[k]) for k in LABELS), flush=True)
+    phases = robot_out_by_phase(runs)
+    print("  - robot_out by phase: " + ", ".join(
+        "%s=%d" % (k, phases[k]) for k in LABELS), flush=True)
 
 
 def main():
-    seeds = list(range(20))
-    row("interior", [E.run_one(i, mode="full") for i in seeds])
-    row("near_edge", [E.run_one(i, mode="full", obj=E.object_near_edge) for i in seeds])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--seeds", type=int, default=20)
+    parser.add_argument("--spacing", type=float)
+    parser.add_argument("--speed", type=float)
+    parser.add_argument("--carry-speed", type=float)
+    parser.add_argument("--marker-side", type=float, default=150.0)
+    args = parser.parse_args()
+    cfg = {k: v for k, v in (("LANE_SPACING_MM", args.spacing), ("SWEEP_SPEED", args.speed),
+                             ("CARRY_SPEED", args.carry_speed),
+                             ("MARKER_SIDE_MM", args.marker_side)) if v is not None}
+    results = {}
+    print("| scenario | n | success | acceptable | object_out | robot_out | wheel_beyond(info) "
+          "| false_claim | carry in-place turns | mean / max time | coverage "
+          "| delivery err med / max mm |", flush=True)
+    for name, kw in (("interior", {}), ("near_edge", dict(obj=E.object_near_edge)),
+                     ("marker_corner", dict(corner=True)),
+                     ("near_start", dict(obj=E.object_near_start))):
+        runs = [E.run_one(i, mode="full", cfg=cfg, marker_side=args.marker_side, **kw)
+                for i in range(args.seeds)]
+        row(name, runs)
+        results[name] = runs
+    Path(args.output).write_text(json.dumps(dict(config=cfg, runs=results), indent=2),
+                                 encoding="utf-8")
 
 
 if __name__ == "__main__":

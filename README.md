@@ -39,6 +39,7 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺�
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/progress-2026-11-18.md`](docs/progress-2026-11-18.md) | 最新进度：v3 边界围栏、贴墙找色标、坐实确认；20×3 离线结果 |
 | [`docs/tuesday-test-plan.md`](docs/tuesday-test-plan.md) | ★ 下次实机的执行顺序、起点卡、通过标准、决策分支（v2） |
 | [`docs/run-sheet.csv`](docs/run-sheet.csv) | 实机记录表（每次运行一行，含目视结果） |
 | [`docs/offline-2026-11-03.md`](docs/offline-2026-11-03.md) | 离线开发：修了什么、测试结果、仍需实机回答的问题 |
@@ -61,7 +62,7 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺�
 | 场上转角自标定 + 色标定位 | `mission.py`（`calib`） | 🧪 待实机 |
 | 搜索 + 负载嫌疑 + tap 确认 | `mission.py`（`capture`） | 🧪 待实机，需推板 |
 | 搜索 + 推送 + 交付 | `mission.py`（`full`） | 🧪 待实机，需带侧板的 V 形推板 |
-| **v3：陀螺航向 + 车道扫描 + 触碰捕获** | `mission.py`（`sweep` / `capture` / `full`） | 🧪 仅离线：8 seeds 里 3/8 真推到色标上；轮子压白带未解决（见 `docs/mission-v3.md`） |
+| **v3：陀螺航向 + 车道扫描 + 触碰捕获** | `mission.py`（`sweep` / `capture` / `full`） | 🧪 仅离线：方形红纸（边长 150 mm [TBD] 压在边界线上）；20 seeds 场内 9/20、靠边 3/20、角落 1/20 交付到纸的场内部分（见 `docs/mission-v3.md`） |
 | 推物体负载信号 | `probe_load.py` | 🧪 待实机 |
 | 轮径/轮距标定 | `calibrate_geometry.py` | 🧪 待实机 |
 

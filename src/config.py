@@ -120,6 +120,7 @@ EDGE_CLEAR_MS = 400             # [TBD - invalidated by chassis rebuild 2026-11-
 # "validated"：11-03 实机通过的参数。车几乎平行于边时，边侧轮子会压上白带（仿真中最深约 36 mm）
 # "steep"    ：同一状态机，更大逃逸角 + 更强回转，碰边入射角更陡，轮子压白更浅（仿真最深约 29 mm），
 #              慢约 20%。【只在仿真中验证】白带窄（< 40 mm）或规则不允许压线时在实机 A/B 测试。
+V3_SIM_FOLLOW = (65, 18, 120, 300, 350)  # speed, approach, turn, escape, clear
 FOLLOW_PROFILE = "validated"
 FOLLOW_PROFILES = {
     "validated": (22, 350, 400),     # [TBD - invalidated by chassis rebuild 2026-11-17]
@@ -202,7 +203,7 @@ SIGNATURES = {   # [TBD - invalidated by chassis rebuild 2026-11-17] 旧底盘�
 # "capture"        : 只做搜索 + 负载嫌疑 + tap 确认（不放物体时测误报率）
 # "full"           : 找终点 -> 自标定 -> 随机反弹搜索 -> tap 确认 -> 推送 -> 交付
 MISSION_MODE = "edge_to_finish"
-MISSION_MAX_MS = 600000         # 整场兜底（full 模式需要数分钟）
+MISSION_MAX_MS = 900000         # 整场兜底（full 模式需要数分钟）
 # 启动由 mission.py 的 RIGHT 按键明确确认；pbrun.cmd 不会自动触发运动。
 
 EDGE_SIDE = -1                  # 白边在车左侧（与已验证 demo_edge 一致）
@@ -272,7 +273,9 @@ CARRY_LOST_N = 12               # 推送中负载连续 12 个样本回落到空
 
 # 色标定位与交付几何
 MAP_MS = 9000                   # 首次确认终点后继续沿边走这么久，求色标中心与场地轴向
-MARKER_INSET_MM = 15            # [TBD] 目标点 = 色标中心估计再往场内移这么多（色标深度/4 左右）
+MARKER_SIDE_MM = 150.0          # [TBD - measure the paper] 方形红纸边长；纸压在白色边界线上
+MARKER_SCAN_STEP_MM = 100.0     # 找色标时垂直撞边的沿墙步距（必须 <= 纸边长才能保证撞到）
+MARKER_PROBE_STEP_MM = 25.0     # 找到后沿墙小步探测纸的沿墙范围（再二分细化）
 APPROACH_STANDOFF_MM = 250      # 交付前先到目标点正前方（场内侧）这么远的待命点，再直线推进
 # 场上转角自标定（full 模式，记录终点后在同一条边上做一次，约 20 s）
 SELF_CAL = False                # v3 默认不走整段自标定（含原地 720° 旋转）；要复现旧路径把
@@ -329,16 +332,16 @@ EDGE_PROBE_SHIFT_MM = 260.0     # 第三次采样前沿边挪的距离（基线�
 # 的离边深度一致，轮子最多跟光斑一样深，永远在白带内沿以里。
 EDGE_WALK_MM = 200.0            # 每次沿边走多远（要小于色标长度，否则两撞之间会跳过色标）
 EDGE_WALK_MS = 300000.0         # 一圈走完的上限（整圈周长约 3.9 m，按 100 mm/s 算 40 s）
+MARKER_SCAN_BACKOFF_MM = 40.0   # 找色标时退到离墙约 60 mm（色标带宽 60 mm，光斑要压上去）
 
 # ---- 车道扫描（boustrophedon，从边上出发、车道垂直于这条边） ----
-LANE_SPACING_MM = 90            # [TBD] 相邻车道间距；推板通口约 105 mm，必须小于通口
+LANE_SPACING_MM = 70            # [TBD] 相邻车道间距；推板通口约 105 mm，必须小于通口
 LANE_MAX_MM = 1236              # 单条车道的上限=场地内部长边（车道必然在这么远内撞到对面白带）
 LANE_MAX_COUNT = 40             # 车道数上限
 LANE_CLEAR_MM = 220.0           # 开第一条车道前，沿车道方向先开这么远离开白带 [TBD]
 LANE_END_MM = 150.0             # 车道一出发不到这么远就见白 = 这条墙到头了（转角的白带）
 SWEEP_PREVIEW_LANES = 4         # MISSION_MODE="sweep" 只扫几条车道（3–5，用来观察色标估计）
-BACKOFF_MM = 80                 # 到边/到围栏后先倒车这么多，再转向
-GEOFENCE_PAD_MM = 40            # 推送中围栏：在场地边界内侧再留这么多
+BACKOFF_MM = 90                 # 到边/到围栏后先倒车这么多，再转向
 DELIVER_TOL_MM = 8.0            # 交付收尾：物体中心距目标点小于这么多就停车（±10 mm 判定窗）
 SETTLE_FOLLOW_MS = 8000.0       # 旧做法：定轴向之前先沿边走这么久（v3 已改 edge_probe，留作对照）
 MARKER_FIND_MS = 120000.0       # 旧做法：full 先沿边走一圈找色标（v3 改由扫描覆盖，留作对照）
@@ -381,3 +384,6 @@ def unconfirmed_items():
     if not COLOR_CONFIRMED:
         items.append("color")
     return items
+
+# Stop the plow front before the estimated white inner boundary.
+GEOFENCE_MARGIN_MM = 20

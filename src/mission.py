@@ -37,7 +37,8 @@ mission.py — 完整自主任务。逻辑全部【离线验证，待实机验�
 import config
 from common import aread, battery_check, log, require_gyro_sign, wait_for_button
 from fsm import (CLEAR, CRUISE, ESCAPE, EdgeFollower, LoadMonitor, Odometry, axis_snap,
-                 diagonal_choices, rotate_about, straight_run_heading, tap_verdict, wrap180)
+                 diagonal_choices, heading_of, rotate_about, straight_run_heading, tap_verdict,
+                 wrap180)
 from hardware import color, drive, ev3, gyro, left, right, touch
 from sensing import Sensing
 
@@ -45,14 +46,15 @@ from pybricks.parameters import Color
 from pybricks.tools import StopWatch, run_task, wait
 
 try:
-    from umath import atan2, cos, pi, sin
+    from umath import atan2, cos, pi, sin, sqrt
 except ImportError:
-    from math import atan2, cos, pi, sin
+    from math import atan2, cos, pi, sin, sqrt
 
-try:
-    from umath import hypot
-except ImportError:
-    from math import hypot
+def hypot(x, y):
+    return sqrt(x*x + y*y)
+
+
+from boundary import Boundary, fit_axis, orient_axis
 
 try:
     import urandom as random
@@ -80,6 +82,17 @@ class Ctx:
     """整场任务共享状态 + 统计。"""
 
     def __init__(self, sense):
+        self.phase = "edge_probe"
+        self.boundary = None
+        self.boundary_hits = []
+        self.white_backoff = None
+        self.use_fence = True
+        self.boundary_kind = None     # last boundary reading: "white" / "red"
+        self.scan_wall_k = None       # wall family being scanned for the marker
+        self.marker_wall_k = None     # wall family the marker was found on
+        self.marker_along_center = None
+        self.marker_inner_mm = None
+        self.marker_extent_mm = None
         self.sense = sense
         self.odom = Odometry()
         self.clock = StopWatch()
@@ -118,6 +131,7 @@ class Ctx:
         self.use_touch = False       # 只有 v3 模式每个 tick 读触碰（老模式省读时间）
         self.gyro_sign = 1.0         # require_gyro_sign() 的结果（+1 = 右转时角度增大）
         self.pressed_n = 0           # 触碰挡板连续 pressed 计数（去抖）
+        self.carry_inplace_turns = 0 # 携带中发生过的原地转（应为 0）
         self.last_press = 0          # 最近一次 pressed 的时刻（运丢判定用）
         self.captured = False        # 已通过触碰确认捕获（去抖后锁存）
         self.path = []               # 最近的车体位姿轨迹
@@ -126,7 +140,6 @@ class Ctx:
         self.onsets = 0              # 见白的上升沿次数（判断是否真的在沿边）
         self.white_hits = []         # 白带前沿的触碰点（拟合墙线方向，最多 24 个）
         self.lane_log = []           # 每条车道的结果：(方向, 结果, 里程)
-        self.boundary_mm = None      # 车道方向上"光斑到场地边界"的估计（mm）
         self.lane_dir = None         # 车道前进方向（DriveBase 航向），±90° 于边
         self.object_pt = None        # 捕获时物体中心落在里程计坐标里的位置（色标未知时先存着）
         self.sweep_adv_mm = 0.0      # 本次扫掠沿墙推进的里程（反向补扫前要退回来）
@@ -203,15 +216,26 @@ async def tick():
     await odom_update()
     ctx.n += 1
     o = ctx.odom
-    if s.white:
+    b = is_boundary(s)
+    if b:
         ctx.white_n += 1
+        ctx.boundary_kind = "red" if s.label == FINISH else "white"
         ctx.last_white = (o.x, o.y)
         ctx.last_white_ms = ctx.now()
-        if not ctx.prev_white and len(ctx.white_hits) < 24:
-            # 白带前沿的触碰点：它们都躺在同一条墙线上，用来拟合墙的方向
-            ctx.white_hits.append((o.x, o.y))
         if not ctx.prev_white:
+            point = ahead(o.x, o.y, o.heading, config.SENSOR_OFFSET_MM, config.SENSOR_LATERAL_MM)
+            if s.white and len(ctx.white_hits) < 24:
+                # 白带前沿的触碰点：它们都躺在同一条墙线上，用来拟合墙的方向
+                ctx.white_hits.append(point)
             ctx.onsets += 1
+            ctx.boundary_hits.append((point, o.heading, ctx.boundary_kind))
+            if len(ctx.boundary_hits) > 200:
+                ctx.boundary_hits.pop(0)
+            if ctx.boundary is not None:
+                ctx.boundary.observe(point, o.heading)
+            if ctx.boundary_kind == "red" and ctx.scan_wall_k is not None:
+                ctx.marker_wall_k = ctx.scan_wall_k
+            ctx.white_backoff = 0.0
         if ctx.white_d0 is None:
             ctx.white_d0 = drive.distance()
         run = abs(drive.distance() - ctx.white_d0)
@@ -219,7 +243,7 @@ async def tick():
             ctx.max_white_run = run
     else:
         ctx.white_d0 = None
-    ctx.prev_white = s.white
+    ctx.prev_white = b
     if drive.stalled():
         ctx.stall_ms += PERIOD
     else:
@@ -275,6 +299,27 @@ def near_any(p, pts, tol):
     return False
 
 
+def dot(p, q):
+    return p[0]*q[0] + p[1]*q[1]
+
+
+def is_boundary(s):
+    """White tape or the red paper on top of it: both are the arena edge."""
+    return s.white or getattr(s, "label", None) == FINISH
+
+
+def marker_seen():
+    """A red reading is enough to start measuring; 3 hits are only needed for a centroid."""
+    return ctx.finish_pose is not None or marker_center() is not None
+
+
+def marker_anchor():
+    c = marker_center()
+    if c is not None:
+        return c
+    return ctx.marker_pts[0] if ctx.marker_pts else None
+
+
 # -------------------------------------------------------------------
 # 基本动作：定距/定角，带超时，结束后更新里程计
 # -------------------------------------------------------------------
@@ -295,9 +340,19 @@ async def straight(mm):
     await odom_update()
     drive.straight(mm, wait=False)
     await _settle(2000 + abs(mm) * 25)
+    if ctx.white_backoff is not None:
+        ctx.white_backoff = max(0.0, ctx.white_backoff - mm)
 
 
 async def rotate(deg):
+    if ctx.carrying:
+        ctx.carry_inplace_turns += 1
+        raise AssertionError("in-place turn while carrying")
+    if ctx.use_gyro and ctx.white_backoff is not None:
+        required = config.AXLE_TRACK_MM / 2 + 30
+        if ctx.white_backoff < required:
+            await straight(-(required - ctx.white_backoff))
+        ctx.white_backoff = None
     await odom_update()
     drive.turn(deg, wait=False)
     await _settle(2000 + abs(deg) * 25)
@@ -312,11 +367,12 @@ async def unstall():
     ctx.stall_ms = 0
 
 
-async def drive_until(speed, max_mm, stop_on_finish=False, monitor=None):
+async def drive_until(speed, max_mm, stop_on_finish=False, monitor=None, geofence=False):
     """直行（DriveBase 自带航向保持）直到：
     'white' 连续 EDGE_CONFIRM_SAMPLES 个白样本 | 'finish' 色标确认 |
     'stall' | 'suspect'（monitor 判定负载抬升）| 'distance' |
-    'capture'（v3 触碰确认捕获）| 'lost'（推送中物体丢了）。停车一律 brake。"""
+    'capture'（v3 触碰确认捕获）| 'lost'（推送中物体丢了）|
+    'geofence'（geofence=True 且推板前缘到达估计边界）。停车一律 brake。"""
     d0 = drive.distance()
     whites = 0
     low = 0
@@ -324,6 +380,9 @@ async def drive_until(speed, max_mm, stop_on_finish=False, monitor=None):
     while True:
         s = await tick()
         r = None
+        if geofence and fence_reached(speed):
+            drive.brake()
+            return "geofence"
         if ctx.captured and not ctx.carrying:
             drive.brake()
             return "capture"
@@ -341,7 +400,7 @@ async def drive_until(speed, max_mm, stop_on_finish=False, monitor=None):
                 return "lost"
         if stop_on_finish and s.marker == FINISH:
             r = "finish"
-        elif s.white:
+        elif is_boundary(s):
             whites += 1
             if whites >= config.EDGE_CONFIRM_SAMPLES:
                 r = "white"
@@ -367,7 +426,7 @@ async def start_check():
     """起步时光斑已压在白边上：直线倒车直到连续看到地面。
     前提：车体中心放在深色场地内（摆放规则），倒车 = 光斑回到场内。"""
     s = await tick()
-    if not s.white:
+    if not is_boundary(s):
         return
     ev("start on white -> back")
     d0 = drive.distance()
@@ -376,7 +435,7 @@ async def start_check():
     while abs(drive.distance() - d0) < config.START_BACK_MAX_MM and dark < 3:
         await wait(PERIOD)
         s = await tick()
-        dark = 0 if s.white else dark + 1
+        dark = 0 if is_boundary(s) else dark + 1
     drive.brake()
     if dark < 3:
         ev("still white: turn 180")
@@ -386,13 +445,15 @@ async def start_check():
 
 
 async def seek_edge(stop_on_finish):
-    """返回 'edge' / 'finish' / None（全部尝试失败）。
+    """返回 'edge' / 'finish' / 'capture' / None（全部尝试失败）。
     推着物体时（ctx.carrying）不倒车：V 形推板倒车会把物体留在原地。"""
     for attempt in range(config.SEEK_ATTEMPTS):
         r = await drive_until(config.CARRY_SPEED if ctx.carrying else config.SEEK_SPEED,
                               config.ARENA_DIAG_MM, stop_on_finish)
         if r == "finish":
             return "finish"
+        if r == "capture":
+            return "capture"
         if r == "white":
             ev3.speaker.beep(900, 60)
             ev("edge found", attempt)
@@ -413,15 +474,65 @@ async def seek_edge(stop_on_finish):
     return None
 
 
+async def edge_from_carry():
+    """Object captured before any wall: forward arcs until the spot sees an edge.
+
+    Never turn in place with the tyre in the V.  Straight legs with a gentle
+    turn-rate arc every couple of seconds sweep the arena until white/red.
+    """
+    ctx.phase = "early_carry"
+    ctx.carrying = True
+    sign = rand_sign()
+    t = 0
+    try:
+        while True:
+            arc = (t // 2000) % 3 == 0
+            drive.drive(config.CARRY_SPEED if ctx.carrying else config.SEEK_SPEED,
+                        sign * config.CARRY_TURN_RATE if arc else 0)
+            s = await tick()
+            if is_boundary(s):
+                drive.brake()
+                if ctx.carrying:
+                    ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading,
+                                          config.OBJ_LEAD_MM)
+                ctx.axis = wrap180(ctx.odom.heading + 90.0)
+                ctx.boundary = Boundary(ctx.axis, config.ARENA_INTERIOR_W_MM,
+                                        config.ARENA_INTERIOR_H_MM)
+                for point, heading, _kind in ctx.boundary_hits:
+                    ctx.boundary.observe(point, heading)
+                ev("capture-first edge: axis {:.0f} bounds {}".format(
+                    ctx.axis, ctx.boundary.bounds))
+                await straight(-max(config.BACKOFF_MM, config.AXLE_TRACK_MM/2 + 30))
+                ctx.carrying = False
+                ctx.captured = False
+                ctx.pressed_n = 0
+                return "edge"
+            if ctx.carrying and carry_lost():
+                drive.brake()
+                ev("capture-first: lost object, keep going to an edge")
+                ctx.carrying = False
+                ctx.captured = False
+                ctx.pressed_n = 0
+                ctx.object_pt = None
+            await wait(PERIOD)
+            t += PERIOD
+    except Exception:
+        drive.brake()
+        raise
+
+
 # -------------------------------------------------------------------
 # 沿边巡线 + 监督
 # -------------------------------------------------------------------
 async def follow(max_ms, until_finish, side=SIDE):
     """返回 'finish' / 'lost' / 'overrun' / 'time'。推送模式下 ESCAPE 用前进急弯。"""
     esc_v = config.CARRY_ESCAPE_SPEED if ctx.carrying else 0
-    steer, esc_ms, clear_ms = config.FOLLOW_PROFILES[config.FOLLOW_PROFILE]
-    f = EdgeFollower(side, config.FOLLOW_SPEED, steer,
-                     config.EDGE_TURN_RATE, esc_ms, clear_ms,
+    if config.FOLLOW_PROFILE == "v3_sim":
+        speed, steer, rate, esc_ms, clear_ms = config.V3_SIM_FOLLOW
+    else:
+        steer, esc_ms, clear_ms = config.FOLLOW_PROFILES[config.FOLLOW_PROFILE]
+        speed, rate = config.FOLLOW_SPEED, config.EDGE_TURN_RATE
+    f = EdgeFollower(side, speed, steer, rate, esc_ms, clear_ms,
                      escape_speed=esc_v)
     t = 0
     handled_exhaust = 0
@@ -432,7 +543,7 @@ async def follow(max_ms, until_finish, side=SIDE):
     while t < max_ms:
         s = await tick()
         seg_n += 1
-        if s.white:
+        if is_boundary(s):
             seg_white += 1
 
         if ctx.captured and not ctx.carrying:
@@ -451,7 +562,7 @@ async def follow(max_ms, until_finish, side=SIDE):
             return "finish"
 
         tw = f.twists
-        sp, tr = f.step(t, s.white)
+        sp, tr = f.step(t, is_boundary(s))
         drive.drive(sp, tr)
         if f.twists != tw:
             ctx.edge_trace.append((ctx.odom.x, ctx.odom.y))
@@ -542,7 +653,7 @@ async def return_inside():
         while dark < 3 and abs(drive.distance() - d0) < 300:
             await wait(PERIOD)
             s = await tick()
-            dark = 0 if s.white else dark + 1
+            dark = 0 if is_boundary(s) else dark + 1
         drive.brake()
         await straight(config.RETURN_IN_MM)
 
@@ -576,7 +687,7 @@ async def tap_confirm(mon):
     while True:
         s = await tick()
         trav = abs(drive.distance() - d0)
-        if s.white:
+        if is_boundary(s):
             break
         x = load_sum()
         if 8 <= trav <= back * 0.5:
@@ -610,7 +721,7 @@ async def carry_turn(deg):
         if s.marker == FINISH:
             drive.brake()
             return "finish"
-        if s.white:
+        if is_boundary(s):
             drive.brake()
             return "white"
         await wait(PERIOD)
@@ -714,6 +825,84 @@ def marker_center():
     return (sum(p[0] for p in keep) / len(keep), sum(p[1] for p in keep) / len(keep))
 
 
+def marker_wall(c=None):
+    """Which arena wall the paper lies on: (axis index, bound, inward/along vectors).
+
+    The marker scan records the wall family it was facing when it found red
+    (ctx.marker_wall_k); without that, fall back to the nearest observed bound.
+    """
+    if ctx.boundary is None:
+        return None
+    c = marker_anchor() if c is None else c
+    if c is None:
+        return None
+    axes = ctx.boundary.axes
+    candidates = []
+    for k in ((ctx.marker_wall_k,) if ctx.marker_wall_k is not None else (0, 1)):
+        u, v = axes[k]
+        q = u*c[0] + v*c[1]
+        for side, b in ((0, ctx.boundary.bounds[k][0]), (1, ctx.boundary.bounds[k][1])):
+            if b is not None:
+                candidates.append((abs(q - b), k, side, b))
+    if not candidates:
+        return None
+    d, k, side, b = min(candidates)
+    if d > config.MARKER_REJECT_MM:
+        return None
+    axis = axes[k]
+    # The extrema used by the fence can sit a little past the tape (an oblique
+    # hit or an overshoot).  For the marker target use the median of the white
+    # hits on that same wall instead.
+    vals = []
+    for p, h, kind in ctx.boundary_hits:
+        if kind != "white" or ctx.boundary.axis_index(h) != k:
+            continue
+        value = dot(p, axis)
+        if (side == 1 and value > 0) or (side == 0 and value < 0):
+            vals.append(value)
+    if vals:
+        b = median(vals)
+    v_in = axis if side == 0 else (-axis[0], -axis[1])
+    v_along = axes[1-k]
+    return dict(k=k, b=b, side=side, axis=axis, v_in=v_in, v_along=v_along,
+                line_n=b if side == 0 else -b,
+                inward_heading=wrap180(heading_of(v_in[0], v_in[1])),
+                along_heading=wrap180(heading_of(v_along[0], v_along[1])))
+
+
+def marker_target():
+    """Target = centre of the part of the paper inside the arena.
+
+    Along the wall it is the paper centre; across it, halfway between the inner
+    edge of the white line (the arena boundary) and the paper's inner edge.  The
+    target is never past the arena boundary.
+    """
+    c = marker_anchor()
+    if c is None:
+        return None, None
+    w = marker_wall(c)
+    if w is None:
+        return c, dict(inner=0.0, along=0.0, extent=0.0, wall=None)
+    vi, va = w["v_in"], w["v_along"]
+    ns = [dot(p, vi) - w["line_n"] for p in ctx.marker_pts]
+    aa = [dot(p, va) for p in ctx.marker_pts]
+    inner = max(ns) if ns else 0.0
+    if ctx.marker_inner_mm is not None:
+        inner = ctx.marker_inner_mm
+    inner = clamp(inner, 0.0, config.MARKER_SIDE_MM * 0.75 + 15.0)
+    if ctx.marker_along_center is not None:
+        along = ctx.marker_along_center
+    elif aa:
+        along = (min(aa) + max(aa)) / 2.0
+    else:
+        along = dot(c, va)
+    base = (w["b"] * w["axis"][0], w["b"] * w["axis"][1])
+    target = (base[0] + along*va[0] + 0.5*inner*vi[0],
+              base[1] + along*va[1] + 0.5*inner*vi[1])
+    return target, dict(inner=inner, along=along,
+                        extent=ctx.marker_extent_mm or 0.0, wall=w)
+
+
 def marker_edge_inward():
     """色标所在那条边的「朝场内」法向。
 
@@ -721,6 +910,16 @@ def marker_edge_inward():
     于是待命点会落到色标旁边，交付时变成沿着白边推（光斑先压到白带、物体离目标
     还差 150 mm 就判失败）。色标自己的那些点都在同一条边沿上，直接拟合它们。
     """
+    c = marker_center()
+    if ctx.boundary is not None and c is not None:
+        x, y = c
+        choices = []
+        for k,(u,v) in enumerate(ctx.boundary.axes):
+            lo,hi = ctx.boundary.limits(k)
+            q = u*x+v*y
+            choices.append((abs(q-lo), heading_of(u, v)))
+            choices.append((abs(hi-q), wrap180(heading_of(u, v) + 180)))
+        return min(choices)[1]
     pts = ctx.marker_pts
     if len(pts) < 3:
         return None
@@ -744,28 +943,32 @@ def marker_edge_inward():
 
 
 def compute_target():
-    """由色标中心求交付目标点与场内待命点。
+    """由红纸的实测范围求交付目标点与场内待命点。
 
-    色标点足够时，待命点沿「色标所在那条边的法向」往外退；否则用 ctx.axis 兜底。
+    目标 = 纸在场内那部分的中心：沿墙方向取纸中心，横向取"白线内沿 ↔ 纸内沿"
+    的中点，永不越过白线内沿。红点不足时退回旧的中心估计。
     """
-    c = marker_center()
-    if c is not None:
-        cx, cy = c
-    elif ctx.finish_pt is not None:
-        cx, cy = ctx.finish_pt
-    else:
+    target, info = marker_target()
+    if target is None:
         ctx.target = None
         ctx.waypoint = None
         return
-    inward = marker_edge_inward()
+    ctx.target = target
+    w = None if info is None else info.get("wall")
+    if w is not None:
+        inward = w["inward_heading"]
+    else:
+        inward = marker_edge_inward()
+        if inward is None:
+            inward = None if ctx.axis is None else wrap180(ctx.axis + INTO_ARENA * 90.0)
     if inward is None:
-        inward = None if ctx.axis is None else wrap180(ctx.axis + INTO_ARENA * 90.0)
-    if inward is None:
-        ctx.target = (cx, cy)
         ctx.waypoint = None
     else:
-        ctx.target = ahead(cx, cy, inward, config.MARKER_INSET_MM)
         ctx.waypoint = ahead(ctx.target[0], ctx.target[1], inward, config.APPROACH_STANDOFF_MM)
+    if info["inner"] < 20.0:
+        ev("marker inside part narrow: {:.0f} mm".format(info["inner"]))
+    ev("marker target: along {:.0f} extent {:.0f} inner {:.0f} -> ({:.0f},{:.0f})".format(
+        info["along"], info["extent"], info["inner"], ctx.target[0], ctx.target[1]))
 
 
 async def map_marker():
@@ -847,6 +1050,7 @@ async def carry_goto(pt, lead=0.0, tol=25.0, max_ms=25000):
     lead>0：让车前 lead 处的物体中心到达 pt。
     返回 'arrived'（到达且基本正对）/ 'missed'（到了但没对准或已经走过）/
          'finish'（光斑压到终点色标）/ 'white' / 'stall' / 'lost' / 'timeout'。"""
+    ctx.phase = "deliver" if lead else "carry"
     t = 0
     whites = 0
     low = 0
@@ -855,13 +1059,23 @@ async def carry_goto(pt, lead=0.0, tol=25.0, max_ms=25000):
     lim = config.CARRY_TURN_RATE
     while t < max_ms:
         s = await tick()
+        if carry_lost():
+            ev("carry lost: last press {} ms ago".format(ctx.now() - ctx.last_press))
+            drive.brake()
+            return "lost"
         rel, dist = ctx.odom.bearing_to(pt[0], pt[1])
+        if lead == 0 and ctx.boundary is not None:
+            # Fence the path to the waypoint along the direction we are about
+            # to drive; checking the current heading alone aborts a leg that
+            # starts beside the marker wall but heads inward.
+            if geofence_mm(wrap180(ctx.odom.heading + rel)) <= \
+                    config.CARRY_SPEED * PERIOD / 1000:
+                drive.brake()
+                return "lost"
         if dist - lead < best:
             best = dist - lead
         r = None
-        if s.marker == FINISH:
-            r = "finish"
-        elif s.white:
+        if is_boundary(s):
             whites += 1
             if whites >= config.EDGE_CONFIRM_SAMPLES:
                 r = "white"
@@ -896,9 +1110,32 @@ async def carry_goto(pt, lead=0.0, tol=25.0, max_ms=25000):
     return "timeout"
 
 
+async def gyro_align(target):
+    drive.brake()
+    deadline = ctx.now() + 10000
+    stable = 0
+    while stable < 3:
+        await tick()
+        if ctx.target is not None:
+            error, _ = ctx.odom.bearing_to(*ctx.target)
+        else:
+            error = wrap180(target - ctx.odom.heading)
+        stable = stable + 1 if abs(error) <= 2 else 0
+        if stable:
+            drive.brake()
+        else:
+            drive.drive(min(config.CARRY_SPEED, abs(error)), clamp(2*error, -config.CARRY_TURN_RATE, config.CARRY_TURN_RATE))
+        if ctx.now() > deadline:
+            drive.brake()
+            raise Abort("gyro alignment failed")
+        await wait(PERIOD)
+    drive.brake()
+
+
 async def deliver():
     """推着物体去终点：先到场内待命点，再从场内正对色标直线推进，让**物体中心**停在目标点。
     返回 'marker' / 'odometry' / 'lost' / 'fail'。"""
+    ctx.phase = "deliver"
     ctx.carrying = True
     if ctx.target is not None:
         for attempt in range(2):
@@ -911,6 +1148,9 @@ async def deliver():
                     return "lost"
                 if r not in ("arrived", "missed"):
                     break
+            drive.brake()
+            rel, _ = ctx.odom.bearing_to(ctx.target[0], ctx.target[1])
+            await gyro_align(wrap180(ctx.odom.heading + rel))
             r = await carry_goto(ctx.target, config.OBJ_LEAD_MM, config.DELIVER_TOL_MM)
             ev("deliver target:", r, "left {:.0f}".format(
                 ctx.odom.bearing_to(ctx.target[0], ctx.target[1])[1] - config.OBJ_LEAD_MM))
@@ -952,17 +1192,26 @@ def median(values):
     return v[len(v) // 2] if v else None
 
 
-def geofence_mm():
-    """推送中的里程计围栏：估计的场地边界 - (推板前缘 - 光斑前移 + 余量)。
+def geofence_mm(heading=None):
+    """Remaining travel before the plow front would reach an estimated wall.
 
-    推板前缘比光斑还远 PLOW_FRONT_MM - SENSOR_OFFSET_MM，所以"光斑走满边界估计"时
-    推板早就出界了；围栏必须提前这么多。没有车道长度估计时用场地先验的 90% 兜底。
+    Empty search uses known walls only: an unobserved wall is found by the
+    color sensor, because stopping at the conservative dimension prior would
+    end every lane inside the arena. When carrying, the prior stays in the
+    fence so an unobserved wall cannot swallow the object. `heading` lets a
+    caller ask about the direction of travel rather than the current heading.
     """
-    if ctx.boundary_mm is not None:
-        b = ctx.boundary_mm
-    else:
-        b = min(config.ARENA_INTERIOR_W_MM, config.ARENA_INTERIOR_H_MM) * 0.9
-    return max(120.0, b - (config.PLOW_FRONT_MM - config.SENSOR_OFFSET_MM + config.GEOFENCE_PAD_MM))
+    if not ctx.use_fence or ctx.boundary is None:
+        return 1e9
+    h = ctx.odom.heading if heading is None else heading
+    return ctx.boundary.clearance(ctx.odom.x, ctx.odom.y, h,
+                                  config.PLOW_FRONT_MM,
+                                  known_only=not ctx.carrying) - config.GEOFENCE_MARGIN_MM
+
+
+def fence_reached(speed):
+    """One tick of travel or less left before the plow front meets a wall."""
+    return geofence_mm() <= speed * PERIOD / 1000.0
 
 
 async def sweep_lane(target, carry):
@@ -970,8 +1219,7 @@ async def sweep_lane(target, carry):
     'white' 光斑到白边 | 'geofence' 推送围栏 | 'far' 车道长度上限 |
     'capture' 触碰捕获 | 'lost' 推送中物体丢了 | 'stall' 堵转。"""
     d0 = drive.distance()
-    whites = 0
-    limit = geofence_mm() if carry else config.LANE_MAX_MM
+    limit = config.LANE_MAX_MM
     while True:
         s = await tick()
         if ctx.captured and not ctx.carrying:
@@ -980,39 +1228,28 @@ async def sweep_lane(target, carry):
         if carry and carry_lost():
             drive.brake()
             return "lost", abs(drive.distance() - d0)
-        hold_heading(config.SWEEP_SPEED, target)
         d = abs(drive.distance() - d0)
-        if s.white:
-            whites += 1
-            if whites >= config.EDGE_CONFIRM_SAMPLES:
-                drive.brake()
-                if d < config.LANE_END_MM:
-                    # 车道刚起步就压在白带上 = 这条墙走到头了（车已经越过转角、站在垂直的
-                    # 白带上）。继续沿墙平移就会一路开出场外（实测跑到 2.4 m 外，那里全是
-                    # 远处地板、永远不见白）。
-                    return "end", d
-                return "white", d
-        else:
-            whites = 0
+        if is_boundary(s):
+            drive.brake()
+            await straight(-max(config.BACKOFF_MM, config.AXLE_TRACK_MM/2+30))
+            return ("end" if d < config.LANE_END_MM else "white"), d
         if ctx.stall_ms >= config.STALL_MS:
             drive.brake()
             await unstall()
             return "stall", d
+        if fence_reached(config.SWEEP_SPEED):
+            drive.brake()
+            return "geofence", d
         if d >= limit:
             drive.brake()
-            return ("geofence" if carry else "far"), d
+            return "far", d
+        hold_heading(config.SWEEP_SPEED, target)
         await wait(PERIOD)
 
 
 async def move_along_edge(dist, heading):
-    """沿墙平移 dist（严格走满）。返回 'ok' / 'end' / 'capture' / 'lost' / 'stall'。
-
-    平移时本来就贴着白带走，所以**自家那条边**的白不算数；但沿墙走到墙角时，垂直的那条
-    白带会横穿过来（光斑在墙上平移，走到角上必然压上它）—— 这就是"这条墙到头了"的
-    可靠信号，比等到开出场外（场外全是远景地板、永远不见白）再回头强得多。
-    """
+    """Parallel motion only off-white; stop on ANY white or plow geofence."""
     d0 = drive.distance()
-    whites = 0
     while abs(drive.distance() - d0) < dist:
         s = await tick()
         if ctx.captured and not ctx.carrying:
@@ -1025,8 +1262,7 @@ async def move_along_edge(dist, heading):
             drive.brake()
             await unstall()
             return "stall"
-        whites = whites + 1 if s.white else 0
-        if whites >= config.EDGE_CONFIRM_SAMPLES:
+        if is_boundary(s) or fence_reached(config.SWEEP_SPEED):
             drive.brake()
             return "end"
         hold_heading(config.SWEEP_SPEED, heading)
@@ -1060,7 +1296,7 @@ def _fit_line(pts):
         rms += d * d
     rms = (rms / n) ** 0.5
     span = abs((pts[-1][0] - pts[0][0]) * ux + (pts[-1][1] - pts[0][1]) * uy)
-    return wrap180(-atan2(uy, ux) * 180.0 / pi), rms, span
+    return wrap180(heading_of(ux, uy)), rms, span
 
 
 def wall_fit(min_pts=None, min_span=None, max_rms=6.0, pts=None):
@@ -1086,20 +1322,6 @@ def wall_fit(min_pts=None, min_span=None, max_rms=6.0, pts=None):
         if rms <= max_rms and span >= min_span:
             return h, rms, len(sub)
     return None
-
-
-def wall_axis(prev=None):
-    """墙线方向（DriveBase 航向），与 prev 同侧；拟合不可用时退回 prev。"""
-    fit = wall_fit()
-    if fit is None:
-        return wrap180(prev) if prev is not None else wrap180(ctx.odom.heading)
-    h = fit[0]
-    if prev is not None:
-        while wrap180(h - prev) > 90.0:
-            h += 180.0
-        while wrap180(h - prev) < -90.0:
-            h -= 180.0
-    return wrap180(h)
 
 
 def inward_dir(wall):
@@ -1134,9 +1356,10 @@ async def lane_sweep(max_lanes, carry=False, adv_sign=1.0, want_marker=False):
     先沿墙线让开半个车道（也顺便退出白带）。
     朝场内那一侧用「路径质心相对最近白点」的方向判定，不依赖转角/边序号的符号假设。
     """
+    ctx.phase = "lane"
     if ctx.axis is None:
         ctx.axis = wrap180(ctx.odom.heading)
-    wall = wall_axis(ctx.axis)
+    wall = ctx.axis
     lane_dir = inward_dir(wall)
     advance = wall if adv_sign > 0 else wrap180(wall + 180.0)
     ctx.lane_dir = lane_dir
@@ -1153,7 +1376,7 @@ async def lane_sweep(max_lanes, carry=False, adv_sign=1.0, want_marker=False):
         clean = 0
         while abs(drive.distance() - d0) < config.LANE_CLEAR_MM:
             s = await tick()
-            clean = 0 if s.white else clean + 1
+            clean = 0 if is_boundary(s) else clean + 1
             if clean >= config.EDGE_CONFIRM_SAMPLES:
                 break
             hold_heading(config.SWEEP_SPEED, lane_dir)
@@ -1165,10 +1388,9 @@ async def lane_sweep(max_lanes, carry=False, adv_sign=1.0, want_marker=False):
         turn90 = wrap180(advance - lane_dir)
         ctx.lane_dir = lane_dir
     await turn_to(advance)
-    await drive_until(config.SWEEP_SPEED, config.LANE_SPACING_MM / 2.0)
+    await move_along_edge(config.LANE_SPACING_MM / 2.0, advance)
     await turn_to(lane_dir)
     dirn = 1.0
-    lens = []
     # 扫掠必须能自己停下来：沿墙方向的长度最多是场地长边（先验 [TBD]），
     # 而且连续两条车道一次白都没见到就说明已经扫出场地了。
     max_adv = max(config.ARENA_INTERIOR_W_MM, config.ARENA_INTERIOR_H_MM)
@@ -1200,9 +1422,6 @@ async def lane_sweep(max_lanes, carry=False, adv_sign=1.0, want_marker=False):
             return "covered"
         if r == "white":
             far_run = 0
-            if not carry and d >= config.LANE_SPACING_MM * 0.5:
-                lens.append(d)
-                ctx.boundary_mm = median(lens) + config.SENSOR_OFFSET_MM
             await straight(-config.BACKOFF_MM)     # 运送中见白：立即刹住并倒车
         elif r != "lost":
             far_run += 1 if r == "far" else 0
@@ -1214,7 +1433,7 @@ async def lane_sweep(max_lanes, carry=False, adv_sign=1.0, want_marker=False):
                 ctx.sweep_adv_mm = adv
                 return "covered"
             await straight(-config.BACKOFF_MM)
-        if (carry or want_marker) and marker_center() is not None:
+        if (carry or want_marker) and marker_seen():
             return "marker"
         # 沿墙平移一个车道宽度。必须显式转向 advance 方向再走：车道方向每轮翻转，
         # 用固定的 ±90 转向会在相邻两条车道之间来回走（原地打圈）。
@@ -1268,98 +1487,305 @@ async def go_capture(pt):
     return "failed"
 
 
-async def after_capture(mode):
-    """捕获后的收尾：capture 模式直接停；full 模式按色标位置交付。"""
-    ctx.captured = True
-    if mode == "capture":
-        ev3.speaker.beep(900, 200)
-        return "CAPTURED (touch, unverified)"
-    if marker_center() is None:
-        # 还不知道色标在哪：把物体停在原地（记里程计坐标），空车继续扫色标，找到再回来收。
-        ev("marker unknown -> park the object and keep searching")
-        ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+async def measure_marker():
+    """Measure the paper's along-wall extent and inward edge with local probes.
+
+    A scan hit only gives one point.  Probe perpendicular to the wall at small
+    along-wall steps: red means the probe line crosses the paper, white means it
+    lands beside it.  Bisect each edge, then keep the red onsets (the paper's
+    inner edge) and the measured along interval.
+    """
+    ctx.phase = "marker_probe"
+    w = marker_wall()
+    if w is None or not ctx.marker_pts:
+        ev("marker measure: no wall estimate")
+        return
+    vi, va = w["v_in"], w["v_along"]
+    line_n = w["line_n"]
+    ev("marker wall k={} b={:.0f} line_n={:.0f} bounds={}".format(
+        w["k"], w["b"], line_n, ctx.boundary.bounds))
+    face = wrap180(w["inward_heading"] + 180.0)
+    along_h = w["along_heading"]
+    clear = max(80.0, config.MARKER_SIDE_MM * 0.8 + 40.0)
+    step = config.MARKER_PROBE_STEP_MM
+    max_steps = int((config.MARKER_SIDE_MM * 1.5 + 100.0) / step) + 2
+    a_cur = None
+    rows = []
+    inner = []
+
+    async def probe_at(a_target):
+        nonlocal a_cur
+        if a_cur is None:
+            await turn_to(face)
+            n_cur = dot((ctx.odom.x, ctx.odom.y), vi) - line_n
+            await straight(-(clear - n_cur))
+            a_cur = dot((ctx.odom.x, ctx.odom.y), va)
+        delta = a_target - a_cur
+        if abs(delta) > 1.0:
+            await turn_to(along_h)
+            await straight(delta)
+            await turn_to(face)
+        a_cur = a_target
+        n_cur = dot((ctx.odom.x, ctx.odom.y), vi) - line_n
+        if abs(n_cur - clear) > 25.0:
+            await straight(-(clear - n_cur))
+        a_act = dot((ctx.odom.x, ctx.odom.y), va)
+        ctx.boundary_kind = None
+        # Limit the axle to the estimated line, even if colour is missed.
+        n_cur = dot((ctx.odom.x, ctx.odom.y), vi) - line_n
+        d0 = drive.distance()
+        r = await drive_until(config.SWEEP_SPEED, max(0, n_cur - config.SENSOR_OFFSET_MM))
+        kind = ctx.boundary_kind if r in ("white", "capture") else None
+        if kind == "red" and ctx.boundary_hits:
+            inner.append(dot(ctx.boundary_hits[-1][0], vi) - line_n)
+        await straight(-max(drive.distance() - d0, config.AXLE_TRACK_MM/2 + 30))
+        rows.append((a_act, kind))
+        return kind, a_act
+
+    a0 = sum(dot(p, va) for p in ctx.marker_pts) / len(ctx.marker_pts)
+    kind, a_act = await probe_at(a0)
+    if kind != "red":
+        for off in (step, -step, 2*step, -2*step):
+            kind, a_act = await probe_at(a0 + off)
+            if kind == "red":
+                break
+    if kind != "red":
+        ev("marker measure: no red at hit")
+        return
+    centre = a_act
+    for direction in (1.0, -1.0):
+        a = centre
+        miss = 0
+        for _ in range(max_steps):
+            a += direction * step
+            kind, a_act = await probe_at(a)
+            if kind == "red":
+                miss = 0
+            else:
+                miss += 1
+                if miss >= 2:
+                    break
+    reds = [a for a, k in rows if k == "red"]
+    whites = [a for a, k in rows if k == "white"]
+    if not reds:
+        ev("marker measure: no red probes")
+        return
+    a_lo, a_hi = min(reds), max(reds)
+
+    async def bisect(lo, hi, red_at_hi):
+        for _ in range(3):
+            mid = (lo + hi) / 2.0
+            kind, a_act = await probe_at(mid)
+            if (kind == "red") == red_at_hi:
+                hi = a_act
+            else:
+                lo = a_act
+        return (lo + hi) / 2.0
+
+    left_out = [a for a in whites if a < a_lo]
+    right_out = [a for a in whites if a > a_hi]
+    left_edge = await bisect(max(left_out), a_lo, True) if left_out else a_lo
+    right_edge = await bisect(a_hi, min(right_out), False) if right_out else a_hi
+    n_inner = max(inner) if inner else None
+    ctx.marker_along_center = (left_edge + right_edge) / 2.0
+    ctx.marker_extent_mm = right_edge - left_edge
+    ctx.marker_inner_mm = n_inner
+    ev("marker measured: along {:.0f} extent {:.0f} inner {} (probes {})".format(
+        ctx.marker_along_center, ctx.marker_extent_mm,
+        "none" if n_inner is None else "{:.0f}".format(n_inner), len(rows)))
+
+
+def park_point():
+    """A safe interior point (centre of the estimated boundary rectangle)."""
+    if ctx.boundary is None:
+        return None
+    u0, u1 = ctx.boundary.limits(0)
+    v0, v1 = ctx.boundary.limits(1)
+    u = (u0 + u1) / 2.0
+    v = (v0 + v1) / 2.0
+    ax0, ax1 = ctx.boundary.axes
+    return (u*ax0[0] + v*ax1[0], u*ax0[1] + v*ax1[1])
+
+
+async def marker_search():
+    """Find the colour marker while the object is parked elsewhere.
+
+    The plow fence keeps the sensor ~140 mm inside a wall, but the marker is a
+    60 mm strip against the wall, so a fence-limited lane never sees it. With no
+    object in front the plow may cross the tape, so disable the fence and first
+    walk the perimeter at ~60 mm standoff; only if that misses, sweep both arena
+    orientations as a fallback.
+    """
+    initial_axis = ctx.axis
+    # Turn away from the parked object: the nearest wall in the carry heading
+    # may lie beyond it, and driving to that wall would shove it out.
+    if ctx.object_pt is not None:
+        await rotate(180)
+    ctx.use_fence = False
+    try:
         ctx.captured = False
         ctx.pressed_n = 0
-        await straight(-config.BACKOFF_MM)
-        r = await lane_sweep(config.LANE_MAX_COUNT, False, 1.0, want_marker=True)
-        ev("marker search:", r, "marker", marker_center())
-        if marker_center() is None:
-            r = await lane_sweep(config.LANE_MAX_COUNT, False, -1.0, want_marker=True)
-            ev("marker search (back):", r, "marker", marker_center())
-        if marker_center() is None:
+        r = await edge_walk(config.EDGE_WALK_MS, step_mm=config.MARKER_SCAN_STEP_MM,
+                            backoff_mm=config.MARKER_SCAN_BACKOFF_MM,
+                            fence=False, want_marker=True)
+        ev("marker perimeter scan:", r, "marker", marker_center())
+        if marker_seen():
+            await measure_marker()
+            return "marker"
+        for turn in range(2):
+            ctx.axis = wrap180(initial_axis + 90.0 * turn)
+            for sign in (1.0, -1.0):
+                ctx.captured = False
+                ctx.pressed_n = 0
+                r = await lane_sweep(config.LANE_MAX_COUNT, False, sign, want_marker=True)
+                ev("marker search:", turn, sign, r, "marker", marker_center())
+                if marker_seen():
+                    await measure_marker()
+                    return "marker"
+    finally:
+        ctx.use_fence = True
+        ctx.axis = initial_axis
+        ctx.scan_wall_k = None
+    return "none"
+
+
+async def seat_ok(ms=400):
+    """Creep forward and require the touch to stay pressed: a graze is not a capture."""
+    for _ in range(int(ms / PERIOD)):
+        await tick()
+        if not await read_touch():
+            drive.brake()
+            return False
+        drive.drive(config.CARRY_SPEED, 0)
+        await wait(PERIOD)
+    drive.brake()
+    return True
+
+
+async def after_capture(mode, parked=False):
+    """捕获后的收尾：capture 模式直接停；full 模式按色标位置交付。
+
+    parked=True：物体已经在 ctx.object_pt（起始附近提前捕获、被丢在场边），
+    不再做坐实检查和搬运，直接找色标、回去收、交付。
+    """
+    if not parked:
+        ctx.captured = True
+        if mode == "capture":
+            ev3.speaker.beep(900, 200)
+            return "CAPTURED (touch, unverified)"
+        if not await seat_ok():
+            ev("capture did not stay seated")
+            ctx.captured = False
+            ctx.pressed_n = 0
+            return "retry"
+    need_recapture = parked
+    if not marker_seen():
+        if parked:
+            ev("object parked at the first edge")
+        else:
+            # Carry the object to a safe interior point first: the close boundary
+            # scan would otherwise shove a parked object through the paper/tape.
+            ev("marker unknown -> park the object in the middle")
+            pt = park_point()
+            if pt is not None:
+                ctx.carrying = True
+                rp = await carry_goto(pt, config.OBJ_LEAD_MM, 60.0)
+                ev("park carry:", rp, "at ({:.0f},{:.0f})".format(ctx.odom.x, ctx.odom.y))
+                if rp in ("lost", "white"):
+                    ctx.carrying = False
+                    ctx.captured = False
+                    ctx.pressed_n = 0
+                    return "retry"
+                ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+            else:
+                ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+            ctx.carrying = False
+            ctx.captured = False
+            ctx.pressed_n = 0
+            await straight(-config.BACKOFF_MM)
+        r = await marker_search()
+        if not marker_seen():
             return "END captured but marker unknown (" + r + ")"
+        need_recapture = True
+    if need_recapture:
         how = await go_capture(ctx.object_pt)
         ev("re-capture:", how)
-        if how != "captured":
-            return "END lost object while searching the marker"
+        if how != "captured" or not await seat_ok():
+            ctx.captured = False
+            ctx.carrying = False
+            ctx.pressed_n = 0
+            return "retry"
     compute_target()
     if ctx.target is None:
         return "END captured, no target"
     ev("target", ctx.target, "marker", marker_center())
     how = await deliver()
     ev("deliver:", how)
-    if how == "lost":
-        ctx.lost_objects += 1
-        return "END lost object in carry"
-    if how == "fail":
-        return "END deliver failed"
+    if how in ("lost", "fail"):
+        if how == "lost":
+            ctx.lost_objects += 1
+        ctx.carrying = False
+        ctx.captured = False
+        ctx.pressed_n = 0
+        await straight(-config.BACKOFF_MM)
+        return "retry"
     await release()
     # 机器人看不见物体：这是"按计划完成交付"，不是"确认物体落在色标上"
     return "DELIVERED (unverified, check by eye)"
 
 
-async def edge_walk(max_ms, step_mm=None):
-    """沿场地内侧走一圈找色标：垂直撞边 -> 退到 BACKOFF 的内侧 -> 沿边走一步 -> 再撞。
+async def edge_walk(max_ms, step_mm=None, backoff_mm=None, fence=True, want_marker=False):
+    """Map perimeter with normal approaches and backed-off parallel moves.
 
-    为什么不用贴边巡线（edge_then_follow）：光斑只比轴心前伸 20 mm，而轮子横向在 ±57 mm。
-    贴边巡线时车头几乎平行于白带，一只轮子会深深压进白带（仿真实测 wheel_max_out 51-57，
-    白带只有 40 mm 宽 = 整车掉到场外）。垂直撞边时两个轮子和光斑的离边深度一样，
-    轮子最多跟光斑一样深（20 mm），永远在白带内沿以里。
-
-    撞边的同时光斑会扫过贴边的色标带（色标就贴在场地内侧），所以这一圈就是色标搜索。
+    Each leg stops at the plow geofence, or at white when fence=False. A touched
+    object is parked and left. backoff_mm controls the standoff for the parallel
+    leg; the marker scan uses a small one so the spot passes over the marker band.
     """
+    ctx.phase = "marker_scan" if want_marker else "edge_walk"
     step = config.EDGE_WALK_MM if step_mm is None else step_mm
-    along = None
-    t = 0
-    hits = 0
-    while t < max_ms:
-        if ctx.last_white is not None:
-            rel, _ = ctx.odom.bearing_to(ctx.last_white[0], ctx.last_white[1])
-            face = wrap180(ctx.odom.heading + rel)          # 朝白带
-        else:
-            face = wrap180(ctx.odom.heading)
+    face = min((wrap180(ctx.axis + 90*k) for k in range(4)),
+               key=lambda h: abs(wrap180(h-ctx.odom.heading)))
+    deadline = ctx.now() + max_ms
+    corners = 0
+    if backoff_mm is None:
+        backoff = max(config.BACKOFF_MM, config.AXLE_TRACK_MM / 2 + 30)
+    else:
+        backoff = backoff_mm
+    while ctx.now() < deadline and corners < 5 and not (
+            want_marker and marker_seen()):
+        if ctx.boundary is not None:
+            ctx.scan_wall_k = ctx.boundary.axis_index(face)
         await turn_to(face)
-        r = await drive_until(config.SWEEP_SPEED, config.EDGE_PROBE_MM)
-        t += 1000
-        if r != "white":
-            ev("edge walk: no white (", r, ")")
+        r = await drive_until(config.SWEEP_SPEED, config.EDGE_PROBE_MM, geofence=fence)
+        ev("edge walk: face {:.0f} {}".format(face, r))
+        if want_marker and marker_seen():
+            return "marker"
+        if r == "capture":
+            # A touched object is the latest known object position, even while
+            # only looking for the marker (the parked one may have been nudged).
+            ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+            ctx.captured = False
+            ctx.pressed_n = 0
+        elif r not in ("white", "geofence"):
             return r
-        hits += 1
-        await straight(-config.BACKOFF_MM)
-        if marker_center() is not None:
-            ev("edge walk: marker at hit", hits, marker_center())
-            return "marker"
-        # 沿边走一步。方向取「朝白带」的 ±90 里和上次一致的那个；第一次随便取一个。
-        if along is None:
-            along = wrap180(face + 90.0)
-        cand = wrap180(face + 90.0)
-        if abs(wrap180(cand - along)) > 90.0:
-            cand = wrap180(cand + 180.0)
-        along = cand
+        await straight(-backoff)
+        along = wrap180(face + 90)
         await turn_to(along)
-        sr = await drive_until(config.SWEEP_SPEED, step)
-        t += 1000
-        if sr == "white":
-            # 沿边这一步就撞到白带 = 走到墙角了（垂直的那条白带横在面前），转 90° 继续。
-            await straight(-config.BACKOFF_MM)
-            along = wrap180(along + 90.0)
-            ev("edge walk: corner after", hits, "hits, turn to", int(along))
-            await turn_to(along)
-            await drive_until(config.SWEEP_SPEED, config.BACKOFF_MM)
-        if marker_center() is not None:
-            ev("edge walk: marker while walking", marker_center())
+        r = await drive_until(config.SWEEP_SPEED, step, geofence=fence)
+        ev("edge walk: along {:.0f} {}".format(along, r))
+        if want_marker and marker_seen():
             return "marker"
-    return "time"
+        if r == "capture":
+            ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+            ctx.captured = False
+            ctx.pressed_n = 0
+            await straight(-config.BACKOFF_MM)
+        if r in ("white", "geofence"):
+            await straight(-backoff)
+            face = along
+            corners += 1
+            ev("edge walk corner", corners, r)
+    return "mapped" if corners >= 5 else "time"
 
 
 async def edge_probe(n=3):
@@ -1373,6 +1799,7 @@ async def edge_probe(n=3):
     h_hit 推出来，h_hit 不垂直时第二次撞的点就不在同一条边上，定出来的轴反而更差
     （实测 8 seeds 只有 1 个成功），所以保留斜撞那一撞。
     """
+    ctx.phase = "edge_probe"
     ctx.white_hits = []          # 只要这次采样的点：之前寻边阶段的点是别的边/乱转时采的
     r = await drive_until(config.SWEEP_SPEED, config.EDGE_PROBE_MM)
     if r != "white":
@@ -1389,7 +1816,7 @@ async def edge_probe(n=3):
         await straight(-config.EDGE_PROBE_BACKOFF_MM)
     if n >= 3 and len(ctx.white_hits) >= 2:
         a, b = ctx.white_hits[-2], ctx.white_hits[-1]
-        edge = wrap180(-atan2(b[1] - a[1], b[0] - a[0]) * 180.0 / pi)
+        edge = wrap180(heading_of(b[0] - a[0], b[1] - a[1]))
         if abs(wrap180(edge - h_hit)) > 90.0:
             edge = wrap180(edge + 180.0)
         await turn_to(edge)
@@ -1417,72 +1844,112 @@ async def run_v3(mode):
     """
     if not ctx.sense.marker_enabled:
         ev("WARN: no marker sensing (SENSE_MODE reflection)")
+    ctx.phase = "seek"
     await start_check()
-    r = await seek_edge(False)
+    while True:
+        r = await seek_edge(False)
+        if r in ("edge", "capture", "finish"):
+            break
+        ev("seek retry with a new heading")
+        await rotate(random.randint(90, 180) * rand_sign())
+    if r == "finish":
+        return "END finish before edge"
+    if r == "capture":
+        if mode != "full":
+            return "CAPTURED (touch, unverified)"
+        ev("capture before any edge -> forward arcs to the first edge")
+        r = await edge_from_carry()
+        if r != "edge":
+            return "FAIL early capture: " + r
+        if not ctx.sense.marker_enabled:
+            return "FAIL full needs markers (SENSE_MODE rgb + SIGNATURES)"
+        if ctx.object_pt is not None:
+            result = await after_capture(mode, parked=True)
+            if result != "retry":
+                return result
+            ctx.object_pt = None
+        # Object was lost on the way to the edge: continue with the normal
+        # edge probe and sweep from the boundary we just found.
     if r != "edge":
         return "FAIL no edge found"
     if mode == "full" and not ctx.sense.marker_enabled:
         return "FAIL full needs markers (SENSE_MODE rgb + SIGNATURES)"
-    if mode == "full" and marker_center() is None:
-        # 先沿场地内侧走一圈把色标找到：色标贴在场地内侧边缘，垂直撞边时正好扫过它。
-        # 不用贴边巡线 —— 光斑 20 mm / 半轮距 57 mm 的几何下，贴边时内侧轮必然越出白带。
-        # 顺序反过来（先捕获再找色标）会因为推着物体转弯把轮胎从 V 口里甩掉。
-        ev("marker unknown -> edge walk")
-        pr = await edge_walk(config.EDGE_WALK_MS)
-        ev("edge walk:", pr, "marker", marker_center(),
-           "pts", len(ctx.marker_pts))
-    # 轴向：不贴边巡线。光斑只比轴心前伸 20 mm，而轮子横向在 ±57 mm，沿边巡线时
-    # 内侧轮心必然越过 40 mm 的白带（仿真里 wheel_max_out 到 56 mm，等于整车掉出场外）。
-    # 改用「直行到见白 -> 制动 -> 倒 BACKOFF_MM -> 斜 35 度再撞一次」采样三次：
-    # 三个白带点都躺在同一条边上，拟合出的方向就是这条边的方向；每次转向都在离边
-    # 80 mm 外的场内侧完成，轮子最多压到白带内沿。
     r = await edge_probe(config.EDGE_PROBE_N)
     ev("edge probe:", r, "hits", len(ctx.white_hits))
-    if ctx.captured and not ctx.carrying:
+    if ctx.captured and mode == "capture":
         return await after_capture(mode)
+    if ctx.captured:
+        ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+        ctx.captured = False
+        ctx.pressed_n = 0
+        await straight(-config.BACKOFF_MM)
+    face = ctx.boundary_hits[-1][1] if ctx.boundary_hits else ctx.odom.heading
     fit = wall_fit(min_pts=3, min_span=60.0, pts=ctx.white_hits[-config.EDGE_PROBE_N - 1:])
     if fit is not None:
-        ctx.axis = wrap180(fit[0])
+        ctx.axis = orient_axis(fit[0], face)
         ev("axis from probe: {:.0f} rms={:.1f} pts={}".format(ctx.axis, fit[1], fit[2]))
     else:
-        # 采样没成功：退化成"刚才撞上去的方向就是边的法向"
-        ctx.axis = wrap180(ctx.odom.heading + 90.0)
+        # Near a corner the probe can hit the perpendicular wall, so a line fit
+        # fails. Cluster the hits along candidate arena axes instead.
+        axis = fit_axis([p for p, _, _ in ctx.boundary_hits[-12:]], face)
+        if axis is not None:
+            ctx.axis = axis
+            ev("axis from clusters: {:.0f} (probe weak, pts={})".format(
+                ctx.axis, len(ctx.white_hits)))
+        else:
+            ctx.axis = wrap180(face + 90.0)
+            ev("axis from heading: {:.0f} (probe weak, pts={})".format(
+                ctx.axis, len(ctx.white_hits)))
         f3 = _fit_line(ctx.white_hits[-3:]) if len(ctx.white_hits) >= 3 else None
-        ev("axis from heading: {:.0f} (probe weak, pts={} lastfit={})".format(
-            ctx.axis, len(ctx.white_hits),
-            "none" if f3 is None else "rms={:.1f} span={:.0f}".format(f3[1], f3[2])))
         for i, p in enumerate(ctx.white_hits[-4:]):
             ev("  hit", i, "({:.0f},{:.0f})".format(p[0], p[1]))
+        if f3 is not None:
+            ev("  last fit rms={:.1f} span={:.0f}".format(f3[1], f3[2]))
+    ctx.boundary = Boundary(ctx.axis, config.ARENA_INTERIOR_W_MM, config.ARENA_INTERIOR_H_MM)
+    for point, heading, _kind in ctx.boundary_hits:
+        ctx.boundary.observe(point, heading)
+    ev("boundary estimates", ctx.boundary.bounds)
     ev("sweep frame: wall={:.0f} hits={}".format(ctx.axis, len(ctx.white_hits)))
     if mode == "sweep":
         n = await lane_sweep(config.SWEEP_PREVIEW_LANES, False, 1.0)
         compute_target()
-        ev("sweep:", n, "marker", marker_center(), "axis", ctx.axis, "boundary", ctx.boundary_mm)
+        ev("sweep:", n, "marker", marker_center(), "axis", ctx.axis)
         return "END sweep {} marker={} lanes={}".format(
             n, marker_center(), len(ctx.lane_log))
-    r = await lane_sweep(config.LANE_MAX_COUNT, False, 1.0)
-    if r == "capture":
-        return await after_capture(mode)
-    ev("sweep forward:", r, "lanes", len(ctx.lane_log),
-       "marker_pts", len(ctx.marker_pts))
-    # 反向补扫之前必须先退回起点那条车道：不然是从场地另一头（甚至场外）起扫，
-    # 第一条车道就会朝"以为的场内"开出场外（实测 wheel_max_out 到 3084）。
-    adv_dir = getattr(ctx, "sweep_adv_dir", 0.0)
-    adv_mm = getattr(ctx, "sweep_adv_mm", 0.0)
-    if adv_mm >= config.LANE_SPACING_MM:
-        back = wrap180(adv_dir + 180.0)
-        ev("sweep: retreat {:.0f}mm to the start lane".format(adv_mm))
-        await turn_to(back)
-        rr = await move_along_edge(adv_mm, back)
-        if rr == "capture":
-            return await after_capture(mode)
-        ev("sweep: retreat done", rr)
-    r2 = await lane_sweep(config.LANE_MAX_COUNT, False, -1.0)
-    if r2 == "capture":
-        return await after_capture(mode)
-    if mode == "capture":
-        return "END capture: none (" + r2 + ")"
-    return "END search done, no capture (" + r2 + ")"
+    # No perimeter walk before the object search: it would shove an interior
+    # object against a wall before we ever try to capture it. The marker gets
+    # its own close perimeter scan after a capture.
+    empty_sweeps = 0
+    initial_axis = ctx.axis
+    while empty_sweeps < 3:
+        ctx.axis = wrap180(initial_axis + 90 * (empty_sweeps % 2))
+        captured = False
+        for sign in (1.0, -1.0):
+            r = await lane_sweep(config.LANE_MAX_COUNT, False, sign)
+            if r == "capture":
+                result = await after_capture(mode)
+                if result != "retry":
+                    return result
+                captured = True
+                empty_sweeps = 0
+                break
+            if sign > 0 and ctx.sweep_adv_mm >= config.LANE_SPACING_MM:
+                back = wrap180(ctx.sweep_adv_dir + 180)
+                await turn_to(back)
+                rr = await move_along_edge(ctx.sweep_adv_mm, back)
+                if rr == "capture":
+                    result = await after_capture(mode)
+                    if result != "retry":
+                        return result
+                    captured = True
+                    empty_sweeps = 0
+                    break
+        if not captured:
+            empty_sweeps += 1
+            ev("empty sweep", empty_sweeps, "rotate lanes 90 degrees")
+    ev("object not found")
+    return "END object not found"
+
 
 
 # -------------------------------------------------------------------

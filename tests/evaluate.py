@@ -2,10 +2,11 @@
 
 每次运行输出一个 dict：
   claim          机器人自己报告成功（PASS / DELIVERED）
-  success        地面真值成功：edge_to_finish = 停车时光斑在色标上；full = 物体中心在色标区（±10 mm）
-  acceptable     success 且 无"轮子完全越过白带" 且 无物体被推出场地
+  success        地面真值成功：edge_to_finish = 停车时光斑在色标上；full = 物体中心
+                 落在红纸位于场内（白线内沿以内）的那部分，且不在场外
+  acceptable     success 且无双轮同时越过白带外沿，且无物体出界
   wheel_on_white 任一轮子触地点压到白带
-  wheel_beyond   任一轮子越过白带外沿（= 整车出界）
+  wheel_beyond   任一轮子越过白带外沿（仅信息，不判失败）
   object_out     物体中心越过白带外沿
   false_claim    claim 但 not success
 """
@@ -58,7 +59,7 @@ def start_corner(rng, aw=W, ah=H):
 
 
 def object_interior(rng, aw=W, ah=H):
-    return {"x": rng.uniform(150, aw - 150), "y": rng.uniform(150, ah - 150), "r": 25, "load": 20}
+    return {"x": rng.uniform(150, aw - 150), "y": rng.uniform(150, ah - 150), "r": 33.5, "load": 20}
 
 
 def object_near_edge(rng, aw=W, ah=H):
@@ -76,6 +77,18 @@ def object_near_edge(rng, aw=W, ah=H):
     return o
 
 
+def object_near_start(rng, aw, ah, start):
+    """Tyre 150-400 mm ahead of the start pose, lateral +-60 mm, kept in the arena."""
+    sx, sy, th = start
+    d = rng.uniform(150, 400)
+    lat = rng.uniform(-60, 60)
+    x = sx + d * math.cos(th) - lat * math.sin(th)
+    y = sy + d * math.sin(th) + lat * math.cos(th)
+    if not (60 <= x <= aw-60 and 60 <= y <= ah-60):
+        return None
+    return {"x": x, "y": y, "r": 33.5, "load": 20}
+
+
 # 仿真的车体几何现在与 src/config.py 一致（2026-11-17 实测：光斑 (20,0)、推板前端 143、
 # 物体落座中心 100），所以不再覆盖几何参数 —— 只保留"仿真里陀螺符号确定"这一条
 # （相当于实机已经跑过 probe_new_hw 的 c 段；实机 config 仍为 None，mission 会直接报错，
@@ -84,20 +97,47 @@ SIM_GEOM = dict(GYRO_POSITIVE_DIRECTION=1.0)
 
 
 # ---------------------------------------------------------------- 单次运行
+def marker_inside_rect(mk, W, H):
+    """The part of the paper inside the arena, clipped to the floor."""
+    x0, y0, x1, y1, _ = mk
+    return max(x0, 0.0), max(y0, 0.0), min(x1, W), min(y1, H)
+
+
 def run_one(seed, mode="edge_to_finish", start=start_normal, obj=object_interior, mark=RED_MARK,
-            arena=(W, H), sim_kw=None, cfg=None, obj_kw=None, base=3000):
+            arena=(W, H), sim_kw=None, cfg=None, obj_kw=None, base=3000, corner=False,
+            marker_side=150.0, marker_offset=None):
     aw, ah = arena
     rng = random.Random(base + seed)
     st = start(rng, aw, ah)
-    mk = rect_arena_marker(aw, ah, rng.choice(["right", "top", "left", "bottom"]), surf=mark)
+    where = rng.choice(["right", "top", "left", "bottom"])
     objs = []
     if mode == "full":
-        o = obj(rng, aw, ah)
+        if obj is object_near_start:
+            o = object_near_start(rng, aw, ah, st)
+            while o is None:
+                st = start(rng, aw, ah)
+                o = object_near_start(rng, aw, ah, st)
+        else:
+            o = obj(rng, aw, ah)
         o.update(obj_kw or {})
         objs = [o]
+    if marker_offset is None:
+        marker_offset = random.Random((base + seed) * 7919 + 17).uniform(
+            -marker_side / 4.0, marker_side / 4.0)
+    along = None
+    if corner:
+        where = "right"
+        along = ah - marker_side / 2.0
+    mk = rect_arena_marker(aw, ah, where, side_mm=marker_side, offset=marker_offset,
+                           along=along, surf=mark)
+    inside = marker_inside_rect(mk, aw, ah)
+    target = ((inside[0] + inside[2]) / 2.0, (inside[1] + inside[3]) / 2.0)
     s = Sim(W=aw, H=ah, start=st, seed=seed, buttons=press_right(), markers=[mk], objects=objs,
-            max_ms=900000, **(sim_kw or {}))
-    c = rgb_cfg(mark, MISSION_MODE=mode, MISSION_MAX_MS=600000)
+            max_ms=910000, **(sim_kw or {}))
+    from diagnostics_v3 import Diagnostics
+    diag = Diagnostics(s)
+    s.step_hook = diag.step
+    c = rgb_cfg(mark, MISSION_MODE=mode, MISSION_MAX_MS=900000)
     c.update(SIM_GEOM)
     c.update(cfg or {})
     out, s = run_script("mission", s, seed=seed, allow_timeout=True, **c)
@@ -106,19 +146,26 @@ def run_one(seed, mode="edge_to_finish", start=start_normal, obj=object_interior
     x0, y0, x1, y1, _ = mk
     if mode == "full":
         o = s.objects[0]
-        success = (x0 - 10 <= o["x"] <= x1 + 10 and y0 - 10 <= o["y"] <= y1 + 10) and not o["out"]
+        error = math.hypot(o["x"] - target[0], o["y"] - target[1])
+        # Success = the tyre centre is on the part of the paper inside the arena.
+        # Delivery error (to the inside-part centre) is reported separately.
+        success = (inside[0] <= o["x"] <= inside[2]
+                   and inside[1] <= o["y"] <= inside[3]) and not o["out"]
         object_out = o["out"]
     else:
         sx, sy = s.sensor_pos()
         success = x0 <= sx <= x1 and y0 <= sy <= y1
         object_out = False
+        error = None
     claim = result.startswith("PASS") or result.startswith("DELIVERED")
     wheel_beyond = s.wheel_max_out > s.band
     return dict(seed=seed, result=result, claim=claim, success=success,
-                acceptable=success and not wheel_beyond and not object_out,
+                acceptable=success and not s.robot_out and not object_out, robot_out=s.robot_out,
                 wheel_on_white=s.wheel_max_out > 0, wheel_beyond=wheel_beyond,
                 object_out=object_out, false_claim=claim and not success,
-                sensor_out=s.max_out, wheel_out=s.wheel_max_out, t=s.t / 1000.0, out=out)
+                delivery_error=error, marker_target=target, marker=mk,
+                sensor_out=s.max_out, wheel_out=s.wheel_max_out, t=s.t / 1000.0, out=out,
+                **diag.result())
 
 
 def summarize(name, runs):
@@ -131,5 +178,5 @@ def summarize(name, runs):
         k("object_out"), k("false_claim"), med))
 
 
-HEADER = ("| 场景 | 次数 | 任务成功 | **可接受成功** | 轮压白边 | 轮越过白带(整车出界) | 物体出界 | 虚报成功 | 中位用时 |\n"
+HEADER = ("| 场景 | 次数 | 任务成功 | **可接受成功** | 轮压白边 | 单轮越过白带(信息) | 物体出界 | 虚报成功 | 中位用时 |\n"
           "|---|---|---|---|---|---|---|---|---|")

@@ -13,7 +13,7 @@ for p in (os.path.join(HERE, "mock"), HERE, SRC):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-PROJECT_MODULES = ("config", "hardware", "common", "edge", "fsm", "sensing",
+PROJECT_MODULES = ("boundary", "config", "hardware", "common", "edge", "fsm", "sensing",
                    "mission", "demo_edge", "calibrate_marker", "learned_capture",
                    "contact_inference", "contact_weights", "probe_tap_shadow",
                    "tap_probe_weights", "contact_features", "probe_new_hw")
