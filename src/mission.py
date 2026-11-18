@@ -474,51 +474,20 @@ async def seek_edge(stop_on_finish):
     return None
 
 
-async def edge_from_carry():
-    """Object captured before any wall: forward arcs until the spot sees an edge.
-
-    Never turn in place with the tyre in the V.  Straight legs with a gentle
-    turn-rate arc every couple of seconds sweep the arena until white/red.
-    """
-    ctx.phase = "early_carry"
-    ctx.carrying = True
-    sign = rand_sign()
-    t = 0
-    try:
-        while True:
-            arc = (t // 2000) % 3 == 0
-            drive.drive(config.CARRY_SPEED if ctx.carrying else config.SEEK_SPEED,
-                        sign * config.CARRY_TURN_RATE if arc else 0)
-            s = await tick()
-            if is_boundary(s):
-                drive.brake()
-                if ctx.carrying:
-                    ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading,
-                                          config.OBJ_LEAD_MM)
-                ctx.axis = wrap180(ctx.odom.heading + 90.0)
-                ctx.boundary = Boundary(ctx.axis, config.ARENA_INTERIOR_W_MM,
-                                        config.ARENA_INTERIOR_H_MM)
-                for point, heading, _kind in ctx.boundary_hits:
-                    ctx.boundary.observe(point, heading)
-                ev("capture-first edge: axis {:.0f} bounds {}".format(
-                    ctx.axis, ctx.boundary.bounds))
-                await straight(-max(config.BACKOFF_MM, config.AXLE_TRACK_MM/2 + 30))
-                ctx.carrying = False
-                ctx.captured = False
-                ctx.pressed_n = 0
-                return "edge"
-            if ctx.carrying and carry_lost():
-                drive.brake()
-                ev("capture-first: lost object, keep going to an edge")
-                ctx.carrying = False
-                ctx.captured = False
-                ctx.pressed_n = 0
-                ctx.object_pt = None
-            await wait(PERIOD)
-            t += PERIOD
-    except Exception:
-        drive.brake()
-        raise
+async def park_early_capture():
+    """Leave the tyre where it was caught and turn away before seeking again."""
+    drive.brake()
+    heading = ctx.odom.heading
+    point = ahead(ctx.odom.x, ctx.odom.y, heading, config.OBJ_LEAD_MM)
+    ctx.phase = "early_drop"
+    ev("early capture: park at", point)
+    ctx.carrying = False
+    await straight(-150)
+    ctx.captured = False
+    ctx.pressed_n = 0
+    await rotate(90 * rand_sign())
+    ctx.phase = "seek"
+    return point, heading
 
 
 # -------------------------------------------------------------------
@@ -1214,12 +1183,14 @@ def fence_reached(speed):
     return geofence_mm() <= speed * PERIOD / 1000.0
 
 
-async def sweep_lane(target, carry):
+async def sweep_lane(target, carry, limit=None, speed=None):
     """沿一条车道保持航向直行。返回 (结果, 里程)：
     'white' 光斑到白边 | 'geofence' 推送围栏 | 'far' 车道长度上限 |
     'capture' 触碰捕获 | 'lost' 推送中物体丢了 | 'stall' 堵转。"""
     d0 = drive.distance()
-    limit = config.LANE_MAX_MM
+    local = limit is not None
+    limit = config.LANE_MAX_MM if limit is None else limit
+    speed = config.SWEEP_SPEED if speed is None else speed
     while True:
         s = await tick()
         if ctx.captured and not ctx.carrying:
@@ -1231,19 +1202,22 @@ async def sweep_lane(target, carry):
         d = abs(drive.distance() - d0)
         if is_boundary(s):
             drive.brake()
+            if local:
+                return "white", d
             await straight(-max(config.BACKOFF_MM, config.AXLE_TRACK_MM/2+30))
             return ("end" if d < config.LANE_END_MM else "white"), d
         if ctx.stall_ms >= config.STALL_MS:
             drive.brake()
-            await unstall()
+            if not local:
+                await unstall()
             return "stall", d
-        if fence_reached(config.SWEEP_SPEED):
+        if fence_reached(speed):
             drive.brake()
             return "geofence", d
         if d >= limit:
             drive.brake()
             return "far", d
-        hold_heading(config.SWEEP_SPEED, target)
+        hold_heading(speed, target)
         await wait(PERIOD)
 
 
@@ -1487,6 +1461,62 @@ async def go_capture(pt):
     return "failed"
 
 
+async def return_arc(stage, heading):
+    """Reach a staging pose with forward motion and the live plow fence."""
+    deadline = ctx.now() + 30000
+    while ctx.now() < deadline:
+        sample = await tick()
+        error, dist = ctx.odom.bearing_to(*stage)
+        aim_error = wrap180(heading - ctx.odom.heading)
+        if dist <= 40 and abs(aim_error) <= 12:
+            drive.brake()
+            return True
+        if is_boundary(sample) or ctx.stall_ms >= config.STALL_MS or ctx.captured:
+            break
+        # Approach the staging line from behind. Within one turn radius,
+        # blend toward its final heading rather than orbiting the waypoint.
+        if dist < 70 and abs(aim_error) < 65:
+            error = aim_error
+        rate = clamp(2 * error, -config.CARRY_TURN_RATE, config.CARRY_TURN_RATE)
+        speed = min(config.SWEEP_SPEED, max(9, 38 - abs(error) * 0.35))
+        if fence_reached(speed) or geofence_mm(ctx.odom.heading + rate * PERIOD / 1000) <= speed * PERIOD / 1000:
+            break
+        drive.drive(speed, rate)
+        await wait(PERIOD)
+    drive.brake()
+    return False
+
+
+async def recover_parked(point, heading):
+    """Try the remembered line, then adjacent search lanes around the tyre."""
+    for offset in (0, -config.LANE_SPACING_MM, config.LANE_SPACING_MM):
+        ctx.phase = "reacquire" if offset == 0 else "reacquire_sweep"
+        ctx.captured = False
+        ctx.pressed_n = 0
+        target = ahead(*point, heading, 0, offset)
+        stage = ahead(*target, heading, -250)
+        # Line up using a lead-in to the staging point. It is optional:
+        # there may be no room for it next to a wall.
+        lead_in = ahead(*stage, heading, -100)
+        if geofence_mm(heading) > 100:
+            await return_arc(lead_in, heading)
+        staged = not ctx.captured and await return_arc(stage, heading)
+        if staged:
+            # Sweep along this line no farther than 200 mm beyond the tyre.
+            end = ahead(*target, heading, 200)
+            remaining = dot((end[0] - ctx.odom.x, end[1] - ctx.odom.y),
+                            ahead(0, 0, heading, 1))
+            await sweep_lane(heading, False, limit=remaining,
+                             speed=min(35, config.SWEEP_SPEED))
+        if ctx.captured and not fence_reached(config.CARRY_SPEED) and await seat_ok(geofence=True):
+            ev("parked tyre recaptured", offset)
+            return True
+        ctx.captured = False
+        ctx.pressed_n = 0
+    ev("parked tyre not recovered, resume normal lane sweep")
+    return False
+
+
 async def measure_marker():
     """Measure the paper's along-wall extent and inward edge with local probes.
 
@@ -1607,7 +1637,7 @@ def park_point():
     return (u*ax0[0] + v*ax1[0], u*ax0[1] + v*ax1[1])
 
 
-async def marker_search():
+async def marker_search(turn_away=True):
     """Find the colour marker while the object is parked elsewhere.
 
     The plow fence keeps the sensor ~140 mm inside a wall, but the marker is a
@@ -1619,7 +1649,7 @@ async def marker_search():
     initial_axis = ctx.axis
     # Turn away from the parked object: the nearest wall in the carry heading
     # may lie beyond it, and driving to that wall would shove it out.
-    if ctx.object_pt is not None:
+    if turn_away and ctx.object_pt is not None:
         await rotate(180)
     ctx.use_fence = False
     try:
@@ -1649,11 +1679,11 @@ async def marker_search():
     return "none"
 
 
-async def seat_ok(ms=400):
+async def seat_ok(ms=400, geofence=False):
     """Creep forward and require the touch to stay pressed: a graze is not a capture."""
     for _ in range(int(ms / PERIOD)):
-        await tick()
-        if not await read_touch():
+        sample = await tick()
+        if (geofence and (is_boundary(sample) or fence_reached(config.CARRY_SPEED))) or not await read_touch():
             drive.brake()
             return False
         drive.drive(config.CARRY_SPEED, 0)
@@ -1662,52 +1692,41 @@ async def seat_ok(ms=400):
     return True
 
 
-async def after_capture(mode, parked=False):
-    """捕获后的收尾：capture 模式直接停；full 模式按色标位置交付。
-
-    parked=True：物体已经在 ctx.object_pt（起始附近提前捕获、被丢在场边），
-    不再做坐实检查和搬运，直接找色标、回去收、交付。
-    """
-    if not parked:
-        ctx.captured = True
-        if mode == "capture":
-            ev3.speaker.beep(900, 200)
-            return "CAPTURED (touch, unverified)"
-        if not await seat_ok():
-            ev("capture did not stay seated")
-            ctx.captured = False
-            ctx.pressed_n = 0
-            return "retry"
-    need_recapture = parked
+async def after_capture(mode):
+    """Confirm a normal capture, then find the marker and deliver."""
+    ctx.captured = True
+    if mode == "capture":
+        ev3.speaker.beep(900, 200)
+        return "CAPTURED (touch, unverified)"
+    if not await seat_ok():
+        ev("capture did not stay seated")
+        ctx.captured = False
+        ctx.pressed_n = 0
+        return "retry"
     if not marker_seen():
-        if parked:
-            ev("object parked at the first edge")
+        # Carry the object to a safe interior point first: the close boundary
+        # scan would otherwise shove a parked object through the paper/tape.
+        ev("marker unknown -> park the object in the middle")
+        pt = park_point()
+        if pt is not None:
+            ctx.carrying = True
+            rp = await carry_goto(pt, config.OBJ_LEAD_MM, 60.0)
+            ev("park carry:", rp, "at ({:.0f},{:.0f})".format(ctx.odom.x, ctx.odom.y))
+            if rp in ("lost", "white"):
+                ctx.carrying = False
+                ctx.captured = False
+                ctx.pressed_n = 0
+                return "retry"
+            ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
         else:
-            # Carry the object to a safe interior point first: the close boundary
-            # scan would otherwise shove a parked object through the paper/tape.
-            ev("marker unknown -> park the object in the middle")
-            pt = park_point()
-            if pt is not None:
-                ctx.carrying = True
-                rp = await carry_goto(pt, config.OBJ_LEAD_MM, 60.0)
-                ev("park carry:", rp, "at ({:.0f},{:.0f})".format(ctx.odom.x, ctx.odom.y))
-                if rp in ("lost", "white"):
-                    ctx.carrying = False
-                    ctx.captured = False
-                    ctx.pressed_n = 0
-                    return "retry"
-                ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
-            else:
-                ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
-            ctx.carrying = False
-            ctx.captured = False
-            ctx.pressed_n = 0
-            await straight(-config.BACKOFF_MM)
+            ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
+        ctx.carrying = False
+        ctx.captured = False
+        ctx.pressed_n = 0
+        await straight(-config.BACKOFF_MM)
         r = await marker_search()
         if not marker_seen():
             return "END captured but marker unknown (" + r + ")"
-        need_recapture = True
-    if need_recapture:
         how = await go_capture(ctx.object_pt)
         ev("re-capture:", how)
         if how != "captured" or not await seat_ok():
@@ -1715,6 +1734,10 @@ async def after_capture(mode, parked=False):
             ctx.carrying = False
             ctx.pressed_n = 0
             return "retry"
+    return await deliver_capture()
+
+
+async def deliver_capture():
     compute_target()
     if ctx.target is None:
         return "END captured, no target"
@@ -1846,32 +1869,23 @@ async def run_v3(mode):
         ev("WARN: no marker sensing (SENSE_MODE reflection)")
     ctx.phase = "seek"
     await start_check()
+    parked = None
     while True:
         r = await seek_edge(False)
-        if r in ("edge", "capture", "finish"):
+        if r == "edge":
             break
+        if r == "capture":
+            if mode != "full":
+                return "CAPTURED (touch, unverified)"
+            if not ctx.sense.marker_enabled:
+                return "FAIL full needs markers (SENSE_MODE rgb + SIGNATURES)"
+            # During initial seek no usable boundary model exists yet.
+            parked = await park_early_capture()
+            continue
+        if r == "finish":
+            return "END finish before edge"
         ev("seek retry with a new heading")
         await rotate(random.randint(90, 180) * rand_sign())
-    if r == "finish":
-        return "END finish before edge"
-    if r == "capture":
-        if mode != "full":
-            return "CAPTURED (touch, unverified)"
-        ev("capture before any edge -> forward arcs to the first edge")
-        r = await edge_from_carry()
-        if r != "edge":
-            return "FAIL early capture: " + r
-        if not ctx.sense.marker_enabled:
-            return "FAIL full needs markers (SENSE_MODE rgb + SIGNATURES)"
-        if ctx.object_pt is not None:
-            result = await after_capture(mode, parked=True)
-            if result != "retry":
-                return result
-            ctx.object_pt = None
-        # Object was lost on the way to the edge: continue with the normal
-        # edge probe and sweep from the boundary we just found.
-    if r != "edge":
-        return "FAIL no edge found"
     if mode == "full" and not ctx.sense.marker_enabled:
         return "FAIL full needs markers (SENSE_MODE rgb + SIGNATURES)"
     r = await edge_probe(config.EDGE_PROBE_N)
@@ -1916,6 +1930,20 @@ async def run_v3(mode):
         ev("sweep:", n, "marker", marker_center(), "axis", ctx.axis)
         return "END sweep {} marker={} lanes={}".format(
             n, marker_center(), len(ctx.lane_log))
+    if parked is not None:
+        point, heading = parked
+        # The normal probe may have passed the parked tyre again.
+        if ctx.object_pt is None:
+            ctx.object_pt = point
+        if not marker_seen():
+            await marker_search(turn_away=False)
+        if marker_seen():
+            if await recover_parked(ctx.object_pt, heading):
+                result = await deliver_capture()
+                if result != "retry":
+                    return result
+        else:
+            ev("parked tyre: marker not yet found, resume sweep")
     # No perimeter walk before the object search: it would shove an interior
     # object against a wall before we ever try to capture it. The marker gets
     # its own close perimeter scan after a capture.

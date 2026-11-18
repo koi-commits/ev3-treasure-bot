@@ -133,3 +133,37 @@ class ControllerSafetyTests(unittest.TestCase):
             drive=NS(brake=lambda:None, drive=lambda v,w:self.assertGreater(v,0)))
         asyncio.run(env["gyro_align"](0))
         self.assertEqual(len(seen), 5)
+
+
+class EarlyCaptureTests(unittest.TestCase):
+    def test_drop_precedes_mapping_and_geofenced_recapture(self):
+        import evaluate
+
+        result = evaluate.run_one(2, mode="full", obj=evaluate.object_near_start)
+        trace = result["out"]
+        events = ["early capture: park at", "boundary estimates",
+                  "parked tyre recaptured 0", "deliver:"]
+        positions = [trace.index(event) for event in events]
+        self.assertEqual(positions, sorted(positions))
+        self.assertTrue(result["acceptable"], trace)
+        self.assertEqual(result["carry_inplace_turns"], 0)
+
+    def test_drop_records_capture_pose_before_reversing(self):
+        ctx = NS(odom=NS(x=100, y=20, heading=0), carrying=False,
+                 captured=True, pressed_n=3)
+        moves = []
+
+        async def straight(mm):
+            moves.append(mm)
+            ctx.odom.x += mm
+
+        async def rotate(deg):
+            self.assertFalse(ctx.captured)
+            moves.append(deg)
+
+        env = mission_functions("park_early_capture", ctx=ctx,
+            config=NS(OBJ_LEAD_MM=100), drive=NS(brake=lambda: moves.append("brake")),
+            ev=lambda *args: None, ahead=lambda x,y,h,d: (x+d,y),
+            straight=straight, rotate=rotate, rand_sign=lambda: 1)
+        self.assertEqual(asyncio.run(env["park_early_capture"]()), ((200, 20), 0))
+        self.assertEqual(moves, ["brake", -150, 90])

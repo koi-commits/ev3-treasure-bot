@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, "mock"), os.path.join(HERE, "..", "src")]
 import evaluate as E
 
-LABELS = ("seek", "early_carry", "edge_probe", "edge_walk", "lane", "carry", "marker_scan", "marker_probe", "deliver", "other")
+LABELS = ("seek", "early_carry", "early_drop", "reacquire", "reacquire_sweep", "edge_probe", "edge_walk", "lane", "carry", "marker_scan", "marker_probe", "deliver", "other")
 PHASE_LABEL = {}
 
 
