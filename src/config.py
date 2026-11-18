@@ -120,6 +120,7 @@ EDGE_CLEAR_MS = 400             # [TBD - invalidated by chassis rebuild 2026-11-
 # "validated"：11-03 实机通过的参数。车几乎平行于边时，边侧轮子会压上白带（仿真中最深约 36 mm）
 # "steep"    ：同一状态机，更大逃逸角 + 更强回转，碰边入射角更陡，轮子压白更浅（仿真最深约 29 mm），
 #              慢约 20%。【只在仿真中验证】白带窄（< 40 mm）或规则不允许压线时在实机 A/B 测试。
+V3_SIM_FOLLOW = (65, 18, 120, 300, 350)  # speed, approach, turn, escape, clear
 FOLLOW_PROFILE = "validated"
 FOLLOW_PROFILES = {
     "validated": (22, 350, 400),     # [TBD - invalidated by chassis rebuild 2026-11-17]

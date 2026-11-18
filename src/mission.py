@@ -527,9 +527,12 @@ async def edge_from_carry():
 async def follow(max_ms, until_finish, side=SIDE):
     """返回 'finish' / 'lost' / 'overrun' / 'time'。推送模式下 ESCAPE 用前进急弯。"""
     esc_v = config.CARRY_ESCAPE_SPEED if ctx.carrying else 0
-    steer, esc_ms, clear_ms = config.FOLLOW_PROFILES[config.FOLLOW_PROFILE]
-    f = EdgeFollower(side, config.FOLLOW_SPEED, steer,
-                     config.EDGE_TURN_RATE, esc_ms, clear_ms,
+    if config.FOLLOW_PROFILE == "v3_sim":
+        speed, steer, rate, esc_ms, clear_ms = config.V3_SIM_FOLLOW
+    else:
+        steer, esc_ms, clear_ms = config.FOLLOW_PROFILES[config.FOLLOW_PROFILE]
+        speed, rate = config.FOLLOW_SPEED, config.EDGE_TURN_RATE
+    f = EdgeFollower(side, speed, steer, rate, esc_ms, clear_ms,
                      escape_speed=esc_v)
     t = 0
     handled_exhaust = 0
