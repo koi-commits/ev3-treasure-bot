@@ -1,5 +1,9 @@
 # EV3 Treasure Bot — 自主寻宝与定点运输
 
+[![CI](https://github.com/koi-commits/ev3-treasure-bot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/koi-commits/ev3-treasure-bot/actions/workflows/ci.yml)
+
+Only merge PRs with a green CI check.（CI 跑 CPython 离线测试 + 真 MicroPython 逻辑检查 / mpy-cross 编译 / 仿真；只合并 CI 为绿色的 PR。）
+
 > **2026-11-08 研究更新：** 从端到端 GRU 寻宝失败（0/24）到 841 参数 ContactGRU、独立封存事件审计，再到纯影子模式 Shadow V2.1（64/64 离线回归通过）。今日过程、原始实验与失败结论见 **[AI 研究日记](docs/ai-research-log-2026-11-08.md)**；[实机影子采集操作卡](docs/tap-shadow-runbook.md)。**模型尚未实机验证，也没有接管 Final。**
 
 > **过程存档**：[`开发全过程 / 版本时间线`](docs/development-timeline.md) · [`初版任务方案与五人分工`](docs/project-overview.md) · [`首次实机日志`](docs/session-2026-11-03.md) · [`两轮离线改进`](docs/offline-2026-11-03.md) · [`最终交接`](docs/final-handoff-2026-11-03.md)
@@ -39,7 +43,8 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺�
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/progress-2026-11-18.md`](docs/progress-2026-11-18.md) | 最新进度：v3 边界围栏、贴墙找色标、坐实确认；20×3 离线结果 |
+| [`docs/progress-2026-11-19.md`](docs/progress-2026-11-19.md) | 最新进度：v3 已合并、未实机；待测量清单；下次按 bringup-v3 上机 |
+| [`docs/progress-2026-11-18.md`](docs/progress-2026-11-18.md) | 11-18 进度：v3 边界围栏、贴墙找色标、坐实确认；20×3 离线结果 |
 | [`docs/tuesday-test-plan.md`](docs/tuesday-test-plan.md) | ★ 下次实机的执行顺序、起点卡、通过标准、决策分支（v2） |
 | [`docs/run-sheet.csv`](docs/run-sheet.csv) | 实机记录表（每次运行一行，含目视结果） |
 | [`docs/offline-2026-11-03.md`](docs/offline-2026-11-03.md) | 离线开发：修了什么、测试结果、仍需实机回答的问题 |
