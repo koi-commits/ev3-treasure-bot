@@ -132,6 +132,9 @@ class Ctx:
         self.gyro_sign = 1.0         # require_gyro_sign() 的结果（+1 = 右转时角度增大）
         self.pressed_n = 0           # 触碰挡板连续 pressed 计数（去抖）
         self.carry_inplace_turns = 0 # 携带中发生过的原地转（应为 0）
+        self.swing_turns = 0         # 原地转前因推板扫圈靠近已知白线而额外倒车的次数
+        self.swing_backoff_mm = 0.0  # 上述额外倒车的总距离
+        self.swing_short = 0         # 倒车被尾部余量截短、扫圈仍未完全在线内的次数
         self.last_press = 0          # 最近一次 pressed 的时刻（运丢判定用）
         self.captured = False        # 已通过触碰确认捕获（去抖后锁存）
         self.path = []               # 最近的车体位姿轨迹
@@ -344,6 +347,39 @@ async def straight(mm):
         ctx.white_backoff = max(0.0, ctx.white_backoff - mm)
 
 
+async def swing_guard():
+    """Back off before an in-place turn so the plow-tip swing circle
+    (config.PLOW_SWING_R_MM, ~209 mm with the 2026-11-24 extended plow) stays
+    SWING_MARGIN_MM inside every known white line. Only walls already observed
+    are used; the reverse is capped so the rear never reaches a known wall.
+    """
+    if ctx.boundary is None:
+        return
+    await odom_update()
+    o = ctx.odom
+    need, allowed, blocked = ctx.boundary.swing_backoff(
+        o.x, o.y, o.heading, config.PLOW_SWING_R_MM + config.SWING_MARGIN_MM,
+        config.REAR_CLEAR_MM)
+    wall_back = min(need, allowed, config.SWING_BACKOFF_MAX_MM) if need >= 2.0 else 0.0
+    if need >= 2.0:
+        ctx.swing_turns += 1          # counted with the guard off too (would-be back-offs)
+        ctx.swing_backoff_mm += wall_back
+    if blocked or (need >= 2.0 and wall_back < need - 1.0):
+        ctx.swing_short += 1          # circle still crosses a known wall
+    if config.SWING_GUARD and wall_back >= 2.0:
+        await straight(-wall_back)
+
+
+def swing_blocked_ahead():
+    """With SWING_GUARD on: a known wall straight ahead is inside the plow swing
+    circle (+ margin), so the guard would reverse along the current leg."""
+    if not config.SWING_GUARD or ctx.boundary is None:
+        return False
+    o = ctx.odom
+    ahead_mm = ctx.boundary.clearance(o.x, o.y, o.heading, 0.0, 0.0, known_only=True)
+    return ahead_mm < config.PLOW_SWING_R_MM + config.SWING_MARGIN_MM
+
+
 async def rotate(deg):
     if ctx.carrying:
         ctx.carry_inplace_turns += 1
@@ -353,6 +389,7 @@ async def rotate(deg):
         if ctx.white_backoff < required:
             await straight(-(required - ctx.white_backoff))
         ctx.white_backoff = None
+    await swing_guard()
     await odom_update()
     drive.turn(deg, wait=False)
     await _settle(2000 + abs(deg) * 25)
@@ -482,7 +519,7 @@ async def park_early_capture():
     ctx.phase = "early_drop"
     ev("early capture: park at", point)
     ctx.carrying = False
-    await straight(-150)
+    await straight(-max(150, config.TYRE_LEAVE_BACK_MM))
     ctx.captured = False
     ctx.pressed_n = 0
     await rotate(90 * rand_sign())
@@ -1149,7 +1186,7 @@ async def release():
     ev3.light.on(Color.GREEN)
     ev3.speaker.beep(1500, 300)
     ctx.carrying = False
-    await straight(-config.FINISH_BACK_MM)     # 倒车：V 形推板把物体留在原地
+    await straight(-max(config.FINISH_BACK_MM, config.TYRE_LEAVE_BACK_MM))  # 倒车：把物体留在原地
 
 
 # -------------------------------------------------------------------
@@ -1174,7 +1211,7 @@ def geofence_mm(heading=None):
         return 1e9
     h = ctx.odom.heading if heading is None else heading
     return ctx.boundary.clearance(ctx.odom.x, ctx.odom.y, h,
-                                  config.PLOW_FRONT_MM,
+                                  config.PLOW_FRONT_MM, config.PLOW_TIP_HALF_MM,
                                   known_only=not ctx.carrying) - config.GEOFENCE_MARGIN_MM
 
 
@@ -1489,15 +1526,27 @@ async def return_arc(stage, heading):
 
 async def recover_parked(point, heading):
     """Try the remembered line, then adjacent search lanes around the tyre."""
+    # The marker probes end at the wall with the fence off; the 202 mm plow is
+    # then past the fence line and every fenced return arc would stop at once.
+    room = geofence_mm()
+    if room < 30.0:
+        await straight(-min(config.SWING_BACKOFF_MAX_MM, 30.0 - room))
     for offset in (0, -config.LANE_SPACING_MM, config.LANE_SPACING_MM):
         ctx.phase = "reacquire" if offset == 0 else "reacquire_sweep"
         ctx.captured = False
         ctx.pressed_n = 0
         target = ahead(*point, heading, 0, offset)
-        stage = ahead(*target, heading, -250)
+        # Stage far enough behind the tyre that the plow front stays clear of it
+        # (73.5 mm, the clearance the old 250 mm gave the 143 mm plow).
+        stage = ahead(*target, heading, -(config.PLOW_FRONT_MM + config.TIRE_RADIUS_MM + 73.5))
         # Line up using a lead-in to the staging point. It is optional:
         # there may be no room for it next to a wall.
         lead_in = ahead(*stage, heading, -100)
+        # Face the lead-in first (empty plow, so an in-place turn is allowed):
+        # with the 202 mm plow there is no room to swing round on forward arcs
+        # inside the fence when starting at a wall.
+        rel, _ = ctx.odom.bearing_to(*lead_in)
+        await turn_to(wrap180(ctx.odom.heading + rel))
         if geofence_mm(heading) > 100:
             await return_arc(lead_in, heading)
         staged = not ctx.captured and await return_arc(stage, heading)
@@ -1723,7 +1772,7 @@ async def after_capture(mode):
         ctx.carrying = False
         ctx.captured = False
         ctx.pressed_n = 0
-        await straight(-config.BACKOFF_MM)
+        await straight(-max(config.BACKOFF_MM, config.TYRE_LEAVE_BACK_MM))
         r = await marker_search()
         if not marker_seen():
             return "END captured but marker unknown (" + r + ")"
@@ -1750,7 +1799,7 @@ async def deliver_capture():
         ctx.carrying = False
         ctx.captured = False
         ctx.pressed_n = 0
-        await straight(-config.BACKOFF_MM)
+        await straight(-max(config.BACKOFF_MM, config.TYRE_LEAVE_BACK_MM))
         return "retry"
     await release()
     # 机器人看不见物体：这是"按计划完成交付"，不是"确认物体落在色标上"
@@ -1789,6 +1838,7 @@ async def edge_walk(max_ms, step_mm=None, backoff_mm=None, fence=True, want_mark
             ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
             ctx.captured = False
             ctx.pressed_n = 0
+            await straight(-max(config.BACKOFF_MM, config.TYRE_LEAVE_BACK_MM) + backoff)
         elif r not in ("white", "geofence"):
             return r
         await straight(-backoff)
@@ -1802,9 +1852,15 @@ async def edge_walk(max_ms, step_mm=None, backoff_mm=None, fence=True, want_mark
             ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
             ctx.captured = False
             ctx.pressed_n = 0
-            await straight(-config.BACKOFF_MM)
-        if r in ("white", "geofence"):
-            await straight(-backoff)
+            await straight(-max(config.BACKOFF_MM, config.TYRE_LEAVE_BACK_MM))
+        if r == "distance" and swing_blocked_ahead():
+            # The guard before turning back to the wall would reverse along this
+            # leg and undo the step (livelock at the corner): the known wall
+            # ahead is the next face.
+            r = "swing"
+        if r in ("white", "geofence", "swing"):
+            if r != "swing":
+                await straight(-backoff)
             face = along
             corners += 1
             ev("edge walk corner", corners, r)
@@ -1896,7 +1952,7 @@ async def run_v3(mode):
         ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
         ctx.captured = False
         ctx.pressed_n = 0
-        await straight(-config.BACKOFF_MM)
+        await straight(-max(config.BACKOFF_MM, config.TYRE_LEAVE_BACK_MM))
     face = ctx.boundary_hits[-1][1] if ctx.boundary_hits else ctx.odom.heading
     fit = wall_fit(min_pts=3, min_span=60.0, pts=ctx.white_hits[-config.EDGE_PROBE_N - 1:])
     if fit is not None:
@@ -2103,6 +2159,8 @@ async def main():
           "stalls", ctx.stalls, "seek_fail", ctx.seek_fail, "outside_returns", ctx.outs)
     print("suspects", ctx.suspects, "captures", ctx.captures, "lost_in_carry", ctx.lost_objects,
           "heading_fixes", ctx.heading_fixes, "turn_k", ctx.turn_k)
+    print("swing_backoff_turns", ctx.swing_turns, "swing_backoff_mm {:.0f}".format(ctx.swing_backoff_mm),
+          "swing_short", ctx.swing_short)
     print("markers", ctx.markers_seen, "finish_pose", ctx.finish_pose, "target", ctx.target,
           "axis", ctx.axis)
     print("end pose x={:.0f} y={:.0f} h={:.0f}".format(o.x, o.y, o.heading))

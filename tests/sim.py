@@ -14,6 +14,14 @@ DriveBase 约定：turn_rate / angle 正 = 顺时针（右转）。
 import math
 import random
 
+try:
+    import config as _cfg          # src/ 在路径上（harness / MICROPYPATH）
+except ImportError:                # CPython 直接 import sim 时补上 src/
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "src"))
+    import config as _cfg
+
 
 
 def _hypot(a, b):                       # MicroPython 没有 math.hypot
@@ -99,8 +107,11 @@ class SimTimeout(Exception):
 #
 # v3（2026-11-17 换官方 Robot Educator 底盘）：几何改为 CB 基准
 # （CB = 两轮轴线中点到前横梁的前向距离 = 27 mm，实测推板最前端 143 mm）：
-#   V 形臂 (CB+16, ±8) -> (CB+80, ±56)；侧墙 y=±56，x ∈ [CB+16, CB+116]；
+#   V 形臂 (CB+16, ±8) -> (CB+80, ±56)；原 13 孔侧墙 y=±56，x ∈ [CB+16, CB+80]（臂外侧）；
+#   2026-11-24 加长：臂尖接平行梁，内侧 y=±PLOW_MOUTH_MM/2，从臂内侧到达该半宽处
+#   （x ≈ CB+74）一直到 PLOW_FRONT_MM；
 #   触碰挡板 x = CB+38（横跨 y=±25 的一小段，物体坐进推板时压在它上面）。
+#   推板前端与通口直接取自 src/config.py（实测值），不在这里重复写数字。
 # 光斑在 (20, 0)，即 sensor_offset 默认 20（与 src/config.py 的实测值一致）。
 # 旧的 apex/plow_depth/plow_half 模型保留（v3=False 时才用），用于对拍历史结果。
 GEOM = dict(
@@ -111,8 +122,9 @@ GEOM = dict(
     v_near=16.0,        # V 形臂近端 = cb + 16 = 43
     v_far=80.0,         # V 形臂远端 = cb + 80 = 107
     v_apex_y=8.0,       # V 形臂近端半宽
-    v_tip_y=56.0,       # V 形臂远端半宽（= 侧墙半宽，通口 112 mm）
-    wall_far=116.0,     # 侧墙前端 = cb + 116 = 143 = PLOW_FRONT_MM（实测）
+    v_tip_y=56.0,       # V 形臂远端半宽（= 原 13 孔侧墙半宽）
+    wall_far=float(_cfg.PLOW_FRONT_MM) - 27.0,   # 平行加长梁前端 = cb + wall_far = PLOW_FRONT_MM
+    wall_y=float(_cfg.PLOW_MOUTH_MM) / 2.0,      # 平行加长梁内侧半宽 = PLOW_MOUTH_MM / 2
     bumper_x=38.0,      # 触碰挡板 = cb + 38 = 65（+ r 33.5 = 98.5 ≈ OBJ_LEAD 100）
     bumper_half=25.0,   # 触碰挡板半宽
     apex=70.0,          # 旧模型：V 形推板顶点（口袋最深处）
@@ -461,12 +473,18 @@ class Sim:
             cb = g["cb"]
             near, far = cb + g["v_near"], cb + g["v_far"]
             ay, ty = g["v_apex_y"], g["v_tip_y"]
-            wall = cb + g["wall_far"]
+            wall, wy = cb + g["wall_far"], g["wall_y"]
+            # 加长梁从 V 臂内侧到达通口半宽的地方开始（内表面连续）。sim 的臂尖半宽 56
+            # 是旧假设，比实测通口 103/2 宽 4.5 mm；梁若从 x=far 起会在臂尖形成向内的台阶，
+            # 把轮胎卡在座位前 ~18 mm（触碰时有时无 -> 判 lost）。实物梁装在臂尖上，没有这个台阶。
+            wstart = near + (far - near) * (wy - ay) / (ty - ay) if ty > wy else far
             bx, bhh = cb + g["bumper_x"], g["bumper_half"]
             segs += [((near, ay), (far, ty)),        # 左 V 形臂（前宽后窄 -> 口袋）
                      ((near, -ay), (far, -ty)),      # 右 V 形臂
-                     ((near, ty), (wall, ty)),       # 左侧墙
-                     ((near, -ty), (wall, -ty)),     # 右侧墙
+                     ((near, ty), (far, ty)),        # 左侧墙（原 13 孔，臂外侧）
+                     ((near, -ty), (far, -ty)),      # 右侧墙
+                     ((wstart, wy), (wall, wy)),     # 左平行加长梁（臂尖 -> 推板前端）
+                     ((wstart, -wy), (wall, -wy)),   # 右平行加长梁
                      ((bx, -bhh), (bx, bhh))]        # 触碰挡板（窄条，物体坐进来时压上）
         elif g["plow"]:
             ax, dp, ph = g["apex"], g["plow_depth"], g["plow_half"]
@@ -568,9 +586,10 @@ class Sim:
         f = dx * c + dy * s
         l = -dx * s + dy * c
         if g.get("v3"):
-            # v3：口袋 = 两臂之间（cb+16 .. cb+112），横向在侧墙内
+            # v3：口袋 = 两臂之间（cb+16 .. cb+80），再往前是两根平行加长梁之间
             cb = g["cb"]
-            return cb + g["v_near"] <= f <= cb + g["wall_far"] and abs(l) <= g["v_tip_y"]
+            half = g["v_tip_y"] if f < cb + g["v_far"] else g["wall_y"]
+            return cb + g["v_near"] <= f <= cb + g["wall_far"] and abs(l) <= half
         k = (f - g["apex"]) / g["plow_depth"]
         return 0 < k <= 1.1 and abs(l) <= k * g["plow_half"] + 2
 

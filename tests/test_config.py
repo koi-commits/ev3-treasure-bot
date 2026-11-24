@@ -40,6 +40,10 @@ class TestConfigGeometry(unittest.TestCase):
         g = sim.GEOM
         self.assertTrue(g.get("v3"), "sim GEOM must be the v3 (CB-based) plow")
         self.assertAlmostEqual(g["cb"] + g["wall_far"], float(self.cfg.PLOW_FRONT_MM), places=6)
+        self.assertAlmostEqual(2.0 * g["wall_y"], float(self.cfg.PLOW_MOUTH_MM), places=6)
+        # 平行加长梁从 V 臂尖开始，不比臂尖更宽（否则臂尖与梁之间漏缝）
+        self.assertLessEqual(g["wall_y"], g["v_tip_y"])
+        self.assertLess(g["cb"] + g["v_far"], float(self.cfg.PLOW_FRONT_MM))
         # 物体坐进推板时中心正好压在挡板前一点点 = OBJ_LEAD
         seat = g["cb"] + g["bumper_x"] + float(self.cfg.TIRE_RADIUS_MM)
         self.assertLess(abs(seat - float(self.cfg.OBJ_LEAD_MM)), 5.0,
@@ -47,11 +51,20 @@ class TestConfigGeometry(unittest.TestCase):
         self.assertAlmostEqual(sim.Sim().sensor_offset, float(self.cfg.SENSOR_OFFSET_MM), places=6)
 
     def test_lane_spacing_fits_the_plow_opening(self):
-        """车道间距必须小于推板通口（2 * v_tip_y），否则相邻车道之间会漏掉一条轮胎。"""
-        opening = 2.0 * sim.GEOM["v_tip_y"]
-        self.assertLess(float(self.cfg.LANE_SPACING_MM), opening,
-                        "LANE_SPACING(%.1f) must be < plow opening (%.1f)"
-                        % (self.cfg.LANE_SPACING_MM, opening))
+        """LANE_SPACING <= PLOW_MOUTH - 20：两条车道正中间的轮胎，中心仍在某一条车道的
+        梁内侧 10 mm 以内，会被梁尖拨进通口，而不是从两条车道之间漏掉。"""
+        limit = float(self.cfg.PLOW_MOUTH_MM) - 20.0
+        self.assertLessEqual(float(self.cfg.LANE_SPACING_MM), limit,
+                             "LANE_SPACING(%.1f) must be <= PLOW_MOUTH - 20 (%.1f)"
+                             % (self.cfg.LANE_SPACING_MM, limit))
+
+    def test_plow_swing_radius_is_derived(self):
+        """原地转扫圈半径 = sqrt(PLOW_FRONT^2 + (PLOW_MOUTH/2 + 4)^2)，约 209 mm。"""
+        c = self.cfg
+        r = (c.PLOW_FRONT_MM ** 2 + (c.PLOW_MOUTH_MM / 2.0 + 4.0) ** 2) ** 0.5
+        self.assertAlmostEqual(c.PLOW_SWING_R_MM, r, places=6)
+        self.assertAlmostEqual(c.PLOW_TIP_HALF_MM, c.PLOW_MOUTH_MM / 2.0 + 4.0, places=6)
+        self.assertTrue(205.0 < c.PLOW_SWING_R_MM < 215.0)
 
     def test_v3_removals_are_off_by_default(self):
         """任务书要求：旧的捕获/自学/反弹搜索默认全部关闭（文件保留，开关打开才走）。"""
