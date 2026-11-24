@@ -125,6 +125,13 @@ FOLLOW_PROFILE = "validated"
 FOLLOW_PROFILES = {
     "validated": (22, 350, 400),     # [TBD - invalidated by chassis rebuild 2026-11-17]
     "steep": (50, 600, 300),         # [TBD - invalidated by chassis rebuild 2026-11-17]
+    # 2026-11-24 离线：左光斑实测 67 mm 前 / 32 mm 左。`python tests/tune_follow_v3.py --spot 67 32`
+    # （直墙模型，FOLLOW_SPEED 60 / EDGE_TURN_RATE 130）前两组不同的 (approach, escape)；
+    # clear_ms 在该模型里几乎不影响结果（56 组里只有 1 组有差别），沿用 validated 的 400。
+    # 【只在仿真中】完整仿真 edge_to_finish 20 seeds（光斑 67/32）：validated / side_a / side_b
+    # 都有 3–4 个 seed 整车开出场地 —— 这两组**没有**解决那个问题，只是更快（67 / 54 / 48 s）。
+    "side_a": (10, 200, 400),
+    "side_b": (14, 200, 400),
 }
 
 # 巡线增益（比例控制，误差按 black/white 对比度归一化）
