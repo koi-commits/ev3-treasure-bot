@@ -147,8 +147,8 @@ class TestFull(unittest.TestCase):
 class TestDeviceScriptsSmoke(unittest.TestCase):
     """每个新/改的上机脚本都在仿真里跑一遍，抓 await/格式化/接口错误。"""
 
-    def run_until_timeout(self, name, sim):
-        return run_script(name, sim, allow_timeout=True)[0]
+    def run_until_timeout(self, name, sim, **cfg):
+        return run_script(name, sim, allow_timeout=True, **cfg)[0]
 
     def test_probe_timing(self):
         out = self.run_until_timeout("probe_timing", Sim(seed=1))
@@ -187,12 +187,14 @@ class TestDeviceScriptsSmoke(unittest.TestCase):
         self.assertIn("AXLE", out)
 
     def test_probe_new_hw(self):
-        """v3 新传感器验收：a 段 32 s + b 段 20 s，c 段等 RIGHT（约 52 s 处）后转 360°。"""
+        """v3 新传感器验收：a 段 32 s + b 段 20 s，c 段等 RIGHT（约 52 s 处）后转 360°。
+
+        这是陀螺仪的验收脚本：只在 HEADING_SOURCE = "gyro" 时 hardware 才构造陀螺。"""
         from pybricks.parameters import Button
         R = Button.RIGHT
         s = Sim(start=(600, 450, 0), seed=1, max_ms=120000,
                 buttons=[(100, 200, R), (55000, 55100, R)])
-        out = self.run_until_timeout("probe_new_hw", s)
+        out = self.run_until_timeout("probe_new_hw", s, HEADING_SOURCE="gyro")
         self.assertIn("--- a) gyro drift ---", out)
         self.assertIn("--- c) turn 360", out)
         self.assertIn("suggested AXLE_TRACK_MM", out)

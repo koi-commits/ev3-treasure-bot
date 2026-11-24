@@ -31,11 +31,13 @@ except Exception as e:                  # 端口空 / 传感器不识别
     touch = None
     print("WARN: no touch sensor on", config.TOUCH_SENSOR_PORT, "->", repr(e))
 
-try:
-    gyro = GyroSensor(config.GYRO_SENSOR_PORT)
-except Exception as e:
-    gyro = None
-    print("WARN: no gyro sensor on", config.GYRO_SENSOR_PORT, "->", repr(e))
+gyro = None                             # HEADING_SOURCE = "odometry"：不构造、不读陀螺
+if config.HEADING_SOURCE == "gyro":
+    try:
+        gyro = GyroSensor(config.GYRO_SENSOR_PORT)
+    except Exception as e:
+        gyro = None
+        print("WARN: no gyro sensor on", config.GYRO_SENSOR_PORT, "->", repr(e))
 
 drive = DriveBase(
     left,

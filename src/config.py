@@ -28,7 +28,7 @@ LEFT_MOTOR_PORT = Port.B        # [TBD] 左轮 B（旧底盘为 A）
 RIGHT_MOTOR_PORT = Port.C       # [TBD] 右轮 C（旧底盘为 D）
 COLOR_SENSOR_PORT = Port.S3     # [TBD] 朝下颜色传感器，居中安装（旧底盘为 S1）
 TOUCH_SENSOR_PORT = Port.S1     # [TBD] 触感：V 形推板顶点（口袋深处）
-GYRO_SENSOR_PORT = Port.S2      # [TBD] 陀螺仪
+GYRO_SENSOR_PORT = Port.S2      # 仅 HEADING_SOURCE = "gyro" 时使用（队里目前没有陀螺仪）
 PORTS_CONFIRMED = False         # 换底盘后必须重跑 diag.py / motor_id.py 再改 True
 LEFT_RIGHT_CONFIRMED = False    # 同上：左右由 motor_id.py 复核
 
@@ -312,9 +312,24 @@ USE_LEARNED_CONTACT = False     # 旧：learned_capture / contact_inference / GR
 USE_BOUNCE_SEARCH = False       # 旧：bounce() 对角线随机反弹搜索
 USE_SELF_CAL = False            # 旧：calibrate_and_map() 原地 720° 自标定
 
-# ---- 航向：陀螺仪 ----
-USE_GYRO = True                 # Odometry 的航向用 gyro.angle()，距离仍用 drive.distance()
-GYRO_SETTLE_MS = 2000           # 起步先静置这么久再 reset 陀螺（EV3 陀螺上电有漂移）
+# ---- 航向 ----
+# 航向来源（sweep / capture / full）："odometry" = drive.angle()（轮子编码器，需要
+# AXLE_TRACK_MM 误差 < 1%，见 calibrate_geometry.py）；"gyro" = gyro.angle() × GYRO_POSITIVE_DIRECTION。
+# 2026-11-24：队里没有陀螺仪 -> 默认 odometry，任何地方都不读陀螺。hardware.gyro 为 None 时也走 odometry。
+HEADING_SOURCE = "odometry"     # "odometry" / "gyro"
+GYRO_SETTLE_MS = 2000           # 仅 gyro：起步先静置这么久再 reset 陀螺（EV3 陀螺上电有漂移）
+# 边界航向修正（odometry 漂移）：同一条已知墙上的两次**白线**撞线点（红纸内沿不在白线上，
+# 不参与），在里程计坐标里连线应当平行于
+# 场地轴向；偏差就是两次撞线之间累计的航向误差。只在墙估计可信时用（墙已观测、两点都落在
+# 墙估计 HEADING_FIX_WALL_TOL_MM 以内、轴向不是从航向猜的），单次最多 HEADING_FIX_MAX_DEG。
+HEADING_FIX = False             # 默认关：20 seeds 离线没有测到收益（见 PR），实机有需要再开
+HEADING_FIX_MAX_DEG = 10.0
+HEADING_FIX_MIN_DEG = 1.0       # 死区：撞线点沿法向只能定位到一个周期的行程（100 mm/s × 50 ms
+                                # = 5 mm），300 mm 跨度上约 ±1°。小于它的偏差当噪声，不修正。
+HEADING_FIX_MIN_SPAN_MM = 300.0 # 两次撞线沿墙至少隔这么远（太近时角度被位置噪声放大）
+HEADING_FIX_WALL_TOL_MM = 60.0
+HEADING_FIX_LOOKBACK = 8        # 只和最近几次撞线配对（中间转向越多，误差越不是常数）
+HEADING_FIX_PHASES = ("lane", "edge_walk", "marker_scan", "reacquire_sweep")
 KP_HEADING = 2.0                # hold_heading 的比例增益（deg/s per deg）
 MAX_TURN_RATE = 120             # hold_heading 的转向率限幅（deg/s）
 

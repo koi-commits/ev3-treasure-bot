@@ -55,7 +55,7 @@ start_check ─► seek_edge ─► edge_probe（定轴向 + 边界）
 
 | 参数 | 值 | 说明 |
 | --- | --- | --- |
-| `USE_GYRO` / `USE_TOUCH` | True | 航向用陀螺、捕获用触碰 |
+| `HEADING_SOURCE` / `USE_TOUCH` | "odometry" / True | 航向用轮子编码器（2026-11-24 起，队里没有陀螺；"gyro" 保留旧行为）、捕获用触碰 |
 | `GYRO_SETTLE_MS` | 2000 | 起步静置 2 s 后 `reset_angle(0)` |
 | `KP_HEADING` / `MAX_TURN_RATE` | 2.0 / 120 | `hold_heading` 的 P 增益与转向限幅 |
 | `LOST_MS` | 400 | 运送中连续这么久没被按住就算丢了 |

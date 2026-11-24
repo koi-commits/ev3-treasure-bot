@@ -81,6 +81,7 @@ def fit_axis(points, face=None, tol=12.0):
 
 class Boundary:
     def __init__(self, axis, width, height):
+        self.axis = axis
         a = -axis * pi / 180
         self.axes = ((cos(a), sin(a)), (-sin(a), cos(a)))
         self.bounds = [[None, None], [None, None]]

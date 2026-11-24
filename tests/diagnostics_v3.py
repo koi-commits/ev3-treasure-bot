@@ -13,6 +13,9 @@ class Diagnostics:
         self.wheel_phase = "startup"
         self.robot_out_phase = None
         self.carry_inplace_turns = 0
+        self.th0 = None                 # true start heading (rad); odometry heading 0 = start
+        self.heading_err_deliver = None # odometry - true heading (deg), last value in "deliver"
+        self.heading_err_max = 0.0
         self.object_phases = {}
         self.last_sample = -100
 
@@ -25,6 +28,15 @@ class Diagnostics:
         if sim.robot_out and self.robot_out_phase is None:
             self.robot_out_phase = phase
         self.carry_inplace_turns = getattr(ctx, "carry_inplace_turns", 0)
+        if self.th0 is None:
+            self.th0 = sim.th
+        odom = getattr(ctx, "odom", None)
+        if odom is not None:
+            true_db = -math.degrees(sim.th - self.th0)      # DriveBase convention: + = clockwise
+            err = (odom.heading - true_db + 180.0) % 360.0 - 180.0
+            self.heading_err_max = max(self.heading_err_max, abs(err))
+            if phase == "deliver":
+                self.heading_err_deliver = err
         for i, obj in enumerate(sim.objects):
             if obj["out"] and i not in self.object_phases:
                 self.object_phases[i] = phase
@@ -49,4 +61,6 @@ class Diagnostics:
                         for i in range(self.nx)) for j in reversed(range(self.ny))),
                     wheel_max_phase=self.wheel_phase, robot_out_phase=self.robot_out_phase,
                     carry_inplace_turns=self.carry_inplace_turns,
+                    heading_err_deliver=self.heading_err_deliver,
+                    heading_err_max=self.heading_err_max,
                     object_out_phases=self.object_phases)
