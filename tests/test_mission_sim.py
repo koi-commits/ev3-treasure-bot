@@ -51,11 +51,17 @@ def run_edge_to_finish(seeds, mark=RED_MARK, sim_kw=None, start_fn=random_start,
 
 class TestBaselineReproduction(unittest.TestCase):
     def test_demo_edge_matches_field_log(self):
-        """未改动的 demo_edge.py 在仿真里的统计应接近 11-03 实测（white_frac 0.10–0.17，每段 4–5 锯齿）。"""
+        """未改动的 demo_edge.py 在仿真里的统计应接近 11-03 实测（white_frac 0.10–0.17，每段 4–5 锯齿）。
+
+        这是保留的**旧单传感器巡线**测试：11-03 实测用的是旧底盘（光斑在车前 20 mm、居中、
+        只有一个颜色传感器），所以这里显式用旧几何。新几何（67 mm / ±32 mm 两个光斑）的
+        巡线由 TestEdgeToFinish / TestRecovery 用 two_sensor 巡线器测试。"""
         fracs, twists = [], []
+        old = dict(SENSOR_OFFSET_MM=20, SENSOR_LATERAL_MM=0, USE_RIGHT_SENSOR=False, FOLLOWER="single")
         for seed in range(3):
-            s = Sim(start=(600, 450, math.radians(30 * seed)), seed=seed, buttons=press_right())
-            out, s = run_script("demo_edge", s, seed=seed)
+            s = Sim(start=(600, 450, math.radians(30 * seed)), seed=seed, buttons=press_right(),
+                    sensor_offset=20, sensor_lat=0, right_sensor=False)
+            out, s = run_script("demo_edge", s, seed=seed, **old)
             fracs += [float(l.split("white_frac=")[1].split()[0]) for l in out.splitlines() if "white_frac=" in l]
             twists += [int(l.split("edge_twists")[1]) for l in out.splitlines() if "edge_twists" in l]
             self.assertLess(s.max_out, 25)
@@ -103,9 +109,22 @@ class TestEdgeToFinish(unittest.TestCase):
 
 class TestRecovery(unittest.TestCase):
     def test_lost_edge_recovers(self):
-        """把丢边超时调得很短，强制频繁触发 lost -> 重新寻边，任务仍应完成。"""
-        p, _ = run_edge_to_finish(range(4), cfg=dict(LOST_EDGE_MS=1500))
-        self.assertGreaterEqual(p, 4)
+        """把丢边超时调得很短，强制频繁触发 lost -> 重新寻边，任务仍应完成。
+
+        2026-11-24 两传感器几何（光斑 67 mm / ±32 mm，two_sensor 巡线器）：20 个 seed 至少 19 个
+        完成，且**任何 seed 都不允许整车出场**（硬性要求）。原来是 4 个 seed 全过；新几何下
+        seed 1 在强制 1.5 s 丢边时 150 s 内找不到终点（只超时、不出场，见 PR #8）。"""
+        passes, outs = 0, []
+        for seed in range(20):
+            rng = random.Random(1000 + seed)
+            mk = rect_arena_marker(W, H, rng.choice(["right", "top", "left", "bottom"]), surf=RED_MARK)
+            s = Sim(W=W, H=H, start=random_start(rng), seed=seed, buttons=press_right(), markers=[mk])
+            out, s = run_script("mission", s, seed=seed, **rgb_cfg(RED_MARK, LOST_EDGE_MS=1500))
+            passes += "PASS finish" in result_line(out)
+            if s.robot_out:
+                outs.append(seed)
+        self.assertEqual(outs, [], "robot left the arena")
+        self.assertGreaterEqual(passes, 19)
 
     def test_stall_obstacle(self):
         """场地中间放一个推不动的障碍：堵转恢复后仍能找到终点。"""
@@ -162,10 +181,11 @@ class TestDeviceScriptsSmoke(unittest.TestCase):
         from pybricks.parameters import Button
         R = Button.RIGHT
         mk = rect_arena_marker(W, H, "right")
-        # 2026-11-17 实测：光斑只比轴心前伸 20 mm（原注释里的 60 mm 是旧底盘的数）
-        btn = [(100, 200, R, (600, 450, 0)),                 # floor
-               (8000, 8100, R, (W - 10, 300, 0)),            # 光斑(车前 20 mm)落在白边带内
-               (16000, 16100, R, (W - 10, H / 2, 0))]        # 方形红纸压在边界线上
+        # 2026-11-24 实测：左光斑在车前 67 mm、左 32 mm（朝 +x 时光斑 = 车体 + (67, 32)）
+        sx, sy = 67.0, 32.0
+        btn = [(100, 200, R, (600, 450, 0)),                          # floor
+               (8000, 8100, R, (W + 20 - sx, 300 - sy, 0)),          # 光斑落在白边带 (W, W+40) 内
+               (16000, 16100, R, (W - 10 - sx, H / 2 - sy, 0))]      # 光斑在方形红纸上
         s = Sim(seed=2, markers=[mk], buttons=btn, max_ms=120000)
         out = self.run_until_timeout("calibrate_marker", s)
         self.assertIn("RESULT: PASS", out)

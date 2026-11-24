@@ -25,6 +25,14 @@ right = Motor(config.RIGHT_MOTOR_PORT, config.RIGHT_MOTOR_DIRECTION, config.GEAR
 
 color = ColorSensor(config.COLOR_SENSOR_PORT)
 
+color_right = None                      # 右侧朝下颜色传感器（2026-11-24 新增）
+if config.USE_RIGHT_SENSOR:
+    try:
+        color_right = ColorSensor(config.COLOR_SENSOR_RIGHT_PORT)
+    except Exception as e:              # 端口空 / 传感器不识别
+        color_right = None
+        print("WARN: no right color sensor on", config.COLOR_SENSOR_RIGHT_PORT, "->", repr(e))
+
 try:
     touch = TouchSensor(config.TOUCH_SENSOR_PORT)
 except Exception as e:                  # 端口空 / 传感器不识别

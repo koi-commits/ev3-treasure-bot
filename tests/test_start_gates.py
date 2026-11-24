@@ -32,8 +32,8 @@ class TestExplicitStart(unittest.TestCase):
         self.assert_stationary_without_right('probe_tap_shadow')
 
     def test_tap_shadow_refuses_white_start(self):
-        # 光斑在车前 20 mm：起点 -30 ⇒ 光斑 -10，落在白带 [-40, 0) 里
-        s = Sim(start=(-30, 400, 0), buttons=[(100, 300, Button.RIGHT)], max_ms=2500)
+        # 光斑在车前 67 mm（2026-11-24）：起点 -77 ⇒ 光斑 -10，落在白带 [-40, 0) 里
+        s = Sim(start=(-77, 400, 0), buttons=[(100, 300, Button.RIGHT)], max_ms=2500)
         out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
         self.assertIn('SHADOW_ABORT trial=1 condition=EMPTY phase=start reason=white', out)
         self.assertAlmostEqual(s.dist_acc, 0, places=3)
@@ -41,9 +41,9 @@ class TestExplicitStart(unittest.TestCase):
     def test_tap_shadow_monitors_white_while_backing(self):
         from sim import WHITE
         marker = (525, 0, 545, 900, WHITE)
-        # 光斑在车前 20 mm，初始倒车 50 mm：起点 555 ⇒ 光斑 575（地板），
+        # 光斑在车前 67 mm（2026-11-24），初始倒车 50 mm：起点 508 ⇒ 光斑 575（地板），
         # 倒完光斑退到 525，正好压上色标带 [525, 545]。
-        s = Sim(start=(555, 400, 0), markers=[marker],
+        s = Sim(start=(508, 400, 0), markers=[marker],
                 buttons=[(100, 300, Button.RIGHT)], max_ms=4000)
         out, s = run_script('probe_tap_shadow', s, allow_timeout=True)
         self.assertIn('SHADOW_ABORT trial=1 condition=EMPTY phase=initial_back reason=white', out)
