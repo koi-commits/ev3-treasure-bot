@@ -40,6 +40,8 @@ class TestConfigGeometry(unittest.TestCase):
         g = sim.GEOM
         self.assertTrue(g.get("v3"), "sim GEOM must be the v3 (CB-based) plow")
         self.assertAlmostEqual(g["cb"] + g["wall_far"], float(self.cfg.PLOW_FRONT_MM), places=6)
+        self.assertAlmostEqual(g["v_tip_y"], float(self.cfg.PLOW_TIP_HALF_MM), places=6)
+        self.assertAlmostEqual(self.cfg.PLOW_TIP_HALF_MM, self.cfg.PLOW_MOUTH_MM / 2.0 + 3.5, places=6)
         # 物体坐进推板时中心正好压在挡板前一点点 = OBJ_LEAD
         seat = g["cb"] + g["bumper_x"] + float(self.cfg.TIRE_RADIUS_MM)
         self.assertLess(abs(seat - float(self.cfg.OBJ_LEAD_MM)), 5.0,

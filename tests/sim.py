@@ -119,8 +119,8 @@ GEOM = dict(
     v_near=16.0,        # V 形臂近端 = cb + 16 = 43
     v_far=80.0,         # V 形臂远端 = cb + 80 = 107
     v_apex_y=8.0,       # V 形臂近端半宽
-    v_tip_y=56.0,       # V 形臂远端半宽（= 侧墙半宽，通口 112 mm）
-    wall_far=116.0,     # 侧墙前端 = cb + 116 = 143 = PLOW_FRONT_MM（实测）
+    v_tip_y=float(_cfg.PLOW_TIP_HALF_MM),       # V 形臂远端半宽 = 侧墙中心线（config：56）
+    wall_far=float(_cfg.PLOW_FRONT_MM) - 27.0,  # 侧墙前端 = cb + wall_far = PLOW_FRONT_MM（实测 143）
     bumper_x=38.0,      # 触碰挡板 = cb + 38 = 65（+ r 33.5 = 98.5 ≈ OBJ_LEAD 100）
     bumper_half=25.0,   # 触碰挡板半宽
     apex=70.0,          # 旧模型：V 形推板顶点（口袋最深处）

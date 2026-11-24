@@ -1351,7 +1351,7 @@ def geofence_mm(heading=None):
         return 1e9
     h = ctx.odom.heading if heading is None else heading
     return ctx.boundary.clearance(ctx.odom.x, ctx.odom.y, h,
-                                  config.PLOW_FRONT_MM,
+                                  config.PLOW_FRONT_MM, config.PLOW_TIP_HALF_MM,
                                   known_only=not ctx.carrying) - config.GEOFENCE_MARGIN_MM
 
 
@@ -1668,6 +1668,12 @@ async def return_arc(stage, heading):
 
 async def recover_parked(point, heading):
     """Try the remembered line, then adjacent search lanes around the tyre."""
+    # The marker probes end at the wall with the fence off. If the plow is past
+    # the fence line, every fenced return arc below would stop on its first tick
+    # and recovery would give up without moving: reverse out first.
+    room = geofence_mm()
+    if room < config.RECOVER_FENCE_ROOM_MM:
+        await straight(-min(config.RECOVER_BACKOUT_MAX_MM, config.RECOVER_FENCE_ROOM_MM - room))
     for offset in (0, -config.LANE_SPACING_MM, config.LANE_SPACING_MM):
         ctx.phase = "reacquire" if offset == 0 else "reacquire_sweep"
         ctx.captured = False
@@ -1970,6 +1976,9 @@ async def edge_walk(max_ms, step_mm=None, backoff_mm=None, fence=True, want_mark
             ctx.object_pt = ahead(ctx.odom.x, ctx.odom.y, ctx.odom.heading, config.OBJ_LEAD_MM)
             ctx.captured = False
             ctx.pressed_n = 0
+            # The marker scan's 40 mm standoff would leave the touched tyre inside
+            # the plow for the turn below; back off like every other tyre drop.
+            await straight(-max(0.0, config.BACKOFF_MM - backoff))
         elif r not in ("white", "geofence"):
             return r
         await straight(-backoff)

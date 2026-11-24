@@ -123,8 +123,11 @@ class Boundary:
             hi = lo+self.prior
         return lo,hi
 
-    def clearance(self, x, y, heading, front, half_width=56, known_only=False):
+    def clearance(self, x, y, heading, front, half_width, known_only=False):
         """Forward distance until either plow-front corner reaches a wall.
+
+        front / half_width: the plow-front corners in the robot frame (callers
+        pass config.PLOW_FRONT_MM and config.PLOW_TIP_HALF_MM).
 
         known_only=True ignores the prior-filled opposite wall: an unobserved
         wall is discovered by the color sensor instead of guessed, otherwise a
