@@ -137,6 +137,7 @@ class Ctx:
         self.square_fixes = 0        # 两光斑对线修正次数
         self.square_fix_sum = 0.0    # 修正量绝对值累计（度）
         self.square_tries = 0        # 对线测量次数（含没测到 / 被拒绝）
+        self.right_escapes = 0       # 两传感器巡线：右光斑越线触发的强制逃逸次数
         self.use_touch = False       # 只有 v3 模式每个 tick 读触碰（老模式省读时间）
         self.gyro_sign = 1.0         # require_gyro_sign() 的结果（+1 = 右转时角度增大）
         self.pressed_n = 0           # 触碰挡板连续 pressed 计数（去抖）
@@ -652,6 +653,14 @@ async def follow(max_ms, until_finish, side=SIDE):
         speed, rate = config.FOLLOW_SPEED, config.EDGE_TURN_RATE
     f = EdgeFollower(side, speed, steer, rate, esc_ms, clear_ms,
                      escape_speed=esc_v)
+    # Two-sensor safety rule: the right spot seeing the boundary while following
+    # the LEFT edge means the robot is crossing the line (the left spot has
+    # already passed over the band onto the outside floor).
+    guard = (config.FOLLOWER == "two_sensor" and ctx.sense.color_right is not None)
+    guard_until = -1
+    guard_rate = -side * config.RIGHT_GUARD_TURN_RATE     # away from the edge, into the arena
+    right_prev = True     # trigger on the right spot ARRIVING on the boundary: at the start it may
+                          # still sit on the line the seek just found (seek stops on either spot)
     t = 0
     handled_exhaust = 0
     overrun_streak = 0
@@ -678,6 +687,25 @@ async def follow(max_ms, until_finish, side=SIDE):
             drive.brake()
             ctx.twists += f.twists
             return "finish"
+
+        r = getattr(s, "right", None)
+        right_now = r is not None and is_boundary_left(r)
+        arrived = right_now and not right_prev
+        right_prev = right_now
+        now = ctx.now()                           # real clock: slow sensor reads must not stretch the turn
+        if guard and now >= guard_until and arrived:
+            guard_until = now + 2 * esc_ms
+            ctx.right_escapes += 1
+            ev("follow: right spot on boundary -> escape {} ms".format(2 * esc_ms))
+        if now < guard_until:
+            drive.drive(esc_v, guard_rate)        # in place (forward arc while carrying)
+            await wait(PERIOD)
+            t += PERIOD
+            if ctx.now() >= guard_until:
+                f.state = CRUISE                  # resume the validated follower
+                f.last_white_t = t                # the line was just seen: not "lost"
+                prev_state = CRUISE
+            continue
 
         tw = f.twists
         sp, tr = f.step(t, is_boundary_left(s))   # 已验证的巡线：只用左传感器（边在左侧）
@@ -2265,6 +2293,7 @@ async def main():
           "boundary_fixes", ctx.boundary_fixes,
           "boundary_fix_sum {:.1f}".format(ctx.boundary_fix_sum),
           "boundary_fix_rejects", ctx.boundary_fix_rejects)
+    print("follower", config.FOLLOWER, "right_escapes", ctx.right_escapes)
     print("square_fixes", ctx.square_fixes, "square_fix_sum {:.1f}".format(ctx.square_fix_sum),
           "square_tries", ctx.square_tries)
     print("markers", ctx.markers_seen, "finish_pose", ctx.finish_pose, "target", ctx.target,

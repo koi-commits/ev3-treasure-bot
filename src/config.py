@@ -123,6 +123,12 @@ EDGE_CLEAR_MS = 400             # [TBD - invalidated by chassis rebuild 2026-11-
 #              慢约 20%。【只在仿真中验证】白带窄（< 40 mm）或规则不允许压线时在实机 A/B 测试。
 V3_SIM_FOLLOW = (65, 18, 120, 300, 350)  # speed, approach, turn, escape, clear
 FOLLOW_PROFILE = "validated"
+# 巡线器（2026-11-24 两个朝下传感器）：
+#   "two_sensor"（默认）：左传感器照旧驱动已验证的 EdgeFollower（边在左侧），外加安全规则：
+#       巡线中**右**光斑见白/红 = 车正在越线 -> 立即朝场内（远离边）强力转向 2 × escape_ms，再继续。
+#   "single"：只用左传感器（旧行为）。没有右传感器时自动退回 single。
+FOLLOWER = "two_sensor"
+RIGHT_GUARD_TURN_RATE = 180     # deg/s，右光斑越线时的逃逸转向率（比 EDGE_TURN_RATE 130 更强）
 FOLLOW_PROFILES = {
     "validated": (22, 350, 400),     # [TBD - invalidated by chassis rebuild 2026-11-17]
     "steep": (50, 600, 300),         # [TBD - invalidated by chassis rebuild 2026-11-17]

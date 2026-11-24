@@ -51,11 +51,17 @@ def run_edge_to_finish(seeds, mark=RED_MARK, sim_kw=None, start_fn=random_start,
 
 class TestBaselineReproduction(unittest.TestCase):
     def test_demo_edge_matches_field_log(self):
-        """未改动的 demo_edge.py 在仿真里的统计应接近 11-03 实测（white_frac 0.10–0.17，每段 4–5 锯齿）。"""
+        """未改动的 demo_edge.py 在仿真里的统计应接近 11-03 实测（white_frac 0.10–0.17，每段 4–5 锯齿）。
+
+        这是保留的**旧单传感器巡线**测试：11-03 实测用的是旧底盘（光斑在车前 20 mm、居中、
+        只有一个颜色传感器），所以这里显式用旧几何。新几何（67 mm / ±32 mm 两个光斑）的
+        巡线由 TestEdgeToFinish / TestRecovery 用 two_sensor 巡线器测试。"""
         fracs, twists = [], []
+        old = dict(SENSOR_OFFSET_MM=20, SENSOR_LATERAL_MM=0, USE_RIGHT_SENSOR=False, FOLLOWER="single")
         for seed in range(3):
-            s = Sim(start=(600, 450, math.radians(30 * seed)), seed=seed, buttons=press_right())
-            out, s = run_script("demo_edge", s, seed=seed)
+            s = Sim(start=(600, 450, math.radians(30 * seed)), seed=seed, buttons=press_right(),
+                    sensor_offset=20, sensor_lat=0, right_sensor=False)
+            out, s = run_script("demo_edge", s, seed=seed, **old)
             fracs += [float(l.split("white_frac=")[1].split()[0]) for l in out.splitlines() if "white_frac=" in l]
             twists += [int(l.split("edge_twists")[1]) for l in out.splitlines() if "edge_twists" in l]
             self.assertLess(s.max_out, 25)
