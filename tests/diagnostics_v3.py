@@ -33,13 +33,14 @@ class Diagnostics:
             return
         self.last_sample = sim.t
         c, s = math.cos(sim.th), math.sin(sim.th)
-        front = sim.g["cb"] + sim.g["wall_far"]
-        radius = math.sqrt(front ** 2 + 56 ** 2)
+        front = sim.g["cb"] + sim.g["wall_far"]     # = config.PLOW_FRONT_MM
+        half = sim.g["v_tip_y"]                     # = config.PLOW_TIP_HALF_MM
+        radius = math.sqrt(front ** 2 + half ** 2)
         for j in range(max(0, int((sim.y-radius)/self.cell)), min(self.ny, int((sim.y+radius)/self.cell)+1)):
             for i in range(max(0, int((sim.x-radius)/self.cell)), min(self.nx, int((sim.x+radius)/self.cell)+1)):
                 dx = min((i+0.5)*self.cell, sim.W)-sim.x
                 dy = min((j+0.5)*self.cell, sim.H)-sim.y
-                if sim.g["cb"] <= dx*c+dy*s <= front and abs(-dx*s+dy*c) <= 56:
+                if sim.g["cb"] <= dx*c+dy*s <= front and abs(-dx*s+dy*c) <= half:
                     self.swept.add((i, j))
 
     def result(self):
