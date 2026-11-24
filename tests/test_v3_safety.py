@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 
+import harness
 from harness import press_right, run_script
 from boundary import Boundary, fit_axis
 from diagnostics_v3 import Diagnostics
@@ -23,9 +24,9 @@ class BoundaryTests(unittest.TestCase):
     def test_front_clearance_tracks_pose_and_heading(self):
         b = Boundary(0, 1200, 900)
         b.bounds = [[-500, 700], [-400, 500]]
-        self.assertAlmostEqual(b.clearance(0, 0, 0, 143), 557)
-        self.assertAlmostEqual(b.clearance(100, 0, 0, 143), 457)
-        self.assertAlmostEqual(b.clearance(0, 0, -90, 143), 357)
+        self.assertAlmostEqual(b.clearance(0, 0, 0, 143, 0), 557)
+        self.assertAlmostEqual(b.clearance(100, 0, 0, 143, 0), 457)
+        self.assertAlmostEqual(b.clearance(0, 0, -90, 143, 0), 357)
         # At 45 degrees the outside corner reaches a wall before the centre.
         self.assertLess(b.clearance(0, 0, -45, 143, 56), b.clearance(0, 0, -45, 143, 0))
 
@@ -71,7 +72,7 @@ class BoundaryTests(unittest.TestCase):
         d.step(s)
         self.assertNotIn((30,30), d.swept)  # axle is behind CB
         self.assertIn((40,30), d.swept)
-        self.assertNotIn((40,40), d.swept)  # beyond lateral 56
+        self.assertNotIn((40,40), d.swept)  # beyond lateral PLOW_MOUTH_MM / 2
         self.assertEqual(len(d.result()["coverage_grid"].splitlines()), 60)
 
 
@@ -113,11 +114,68 @@ class ControllerSafetyTests(unittest.TestCase):
             events.append(("back", mm))
         async def noop(*args):
             pass
-        env = mission_functions("rotate", ctx=NS(carrying=False, use_gyro=True, white_backoff=30),
+        env = mission_functions("rotate", "swing_guard",
+            ctx=NS(carrying=False, use_gyro=True, white_backoff=30, boundary=None, object_pt=None),
             config=NS(AXLE_TRACK_MM=104), straight=straight, odom_update=noop,
             _settle=noop, drive=NS(turn=lambda d,wait: events.append(("turn",d))))
         asyncio.run(env["rotate"](90))
         self.assertEqual(events, [("back", -52), ("turn", 90)])
+
+    def swing_env(self, x, heading, events):
+        b = Boundary(0, 1200, 900)
+        b.bounds = [[-500, 700], [None, None]]
+        ctx = NS(carrying=False, use_gyro=False, white_backoff=None, boundary=b,
+                 odom=NS(x=x, y=0, heading=heading), object_pt=None,
+                 swing_turns=0, swing_backoff_mm=0.0, swing_short=0)
+        async def straight(mm):
+            events.append(("back", round(mm, 1)))
+            ctx.odom.x += mm
+        async def noop(*args):
+            pass
+        cfg = harness.fresh_config()
+        env = mission_functions("rotate", "swing_guard", "ahead", ctx=ctx, config=cfg,
+            straight=straight, odom_update=noop, _settle=noop, pi=math.pi, cos=math.cos, sin=math.sin,
+            drive=NS(turn=lambda d, wait: events.append(("turn", d))))
+        return env, ctx, cfg
+
+    def test_turn_near_known_wall_backs_off_for_plow_swing(self):
+        events = []
+        env, ctx, cfg = self.swing_env(600, 0, events)   # facing the +x wall, 100 mm away
+        asyncio.run(env["rotate"](90))
+        need = cfg.PLOW_SWING_R_MM + cfg.SWING_MARGIN_MM - 100
+        self.assertEqual(events, [("back", round(-need, 1)), ("turn", 90)])
+        self.assertEqual(ctx.swing_turns, 1)
+        self.assertEqual(ctx.swing_short, 0)
+        self.assertGreaterEqual(700 - ctx.odom.x, cfg.PLOW_SWING_R_MM + cfg.SWING_MARGIN_MM - 1e-6)
+
+    def test_turn_far_from_walls_needs_no_back_off(self):
+        events = []
+        env, ctx, cfg = self.swing_env(0, 0, events)
+        asyncio.run(env["rotate"](90))
+        self.assertEqual(events, [("turn", 90)])
+        self.assertEqual(ctx.swing_turns, 0)
+
+    def test_swing_back_off_never_reverses_into_a_known_wall(self):
+        b = Boundary(0, 1200, 900)
+        b.bounds = [[-500, 700], [None, None]]
+        # Facing -x with the -x wall 100 mm ahead: reverse 129 mm; the +x wall
+        # 1100 mm behind allows up to 1000 mm before the rear gets within 100 mm.
+        need, allowed, blocked = b.swing_backoff(-400, 0, 180, 229, 100)
+        self.assertAlmostEqual(need, 129.0, places=6)
+        self.assertAlmostEqual(allowed, 1000.0, places=6)
+        need, allowed, blocked = b.swing_backoff(550, 0, 0, 229, 100)
+        self.assertAlmostEqual(need, 79.0, places=6)           # +x wall ahead, 150 mm away
+        self.assertFalse(blocked)
+        # A wall behind the robot cannot be cleared by reversing.
+        need, allowed, blocked = b.swing_backoff(-400, 0, 0, 229, 100)
+        self.assertEqual(need, 0.0)
+        self.assertTrue(blocked)
+        self.assertAlmostEqual(allowed, 0.0)                   # rear already at 100 mm
+        # Mid-arena with a wall 180 mm behind: back-off is capped to keep the rear clear.
+        b.bounds = [[-500, 700], [-400, 500]]
+        need, allowed, blocked = b.swing_backoff(-320, 380, 0, 229, 100)
+        self.assertAlmostEqual(allowed, 80.0, places=6)
+
 
     def test_gyro_alignment_waits_for_three_stable_samples(self):
         readings = iter([20, 5, 1, 0, -1])
@@ -162,8 +220,8 @@ class EarlyCaptureTests(unittest.TestCase):
             moves.append(deg)
 
         env = mission_functions("park_early_capture", ctx=ctx,
-            config=NS(OBJ_LEAD_MM=100), drive=NS(brake=lambda: moves.append("brake")),
+            config=NS(OBJ_LEAD_MM=100, TYRE_LEAVE_BACK_MM=153.0), drive=NS(brake=lambda: moves.append("brake")),
             ev=lambda *args: None, ahead=lambda x,y,h,d: (x+d,y),
             straight=straight, rotate=rotate, rand_sign=lambda: 1)
         self.assertEqual(asyncio.run(env["park_early_capture"]()), ((200, 20), 0))
-        self.assertEqual(moves, ["brake", -150, 90])
+        self.assertEqual(moves, ["brake", -153.0, 90])

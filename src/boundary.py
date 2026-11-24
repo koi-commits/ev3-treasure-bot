@@ -122,8 +122,11 @@ class Boundary:
             hi = lo+self.prior
         return lo,hi
 
-    def clearance(self, x, y, heading, front, half_width=56, known_only=False):
+    def clearance(self, x, y, heading, front, half_width, known_only=False):
         """Forward distance until either plow-front corner reaches a wall.
+
+        front / half_width: the plow-tip corners in the robot frame (callers
+        pass config.PLOW_FRONT_MM and config.PLOW_TIP_HALF_MM).
 
         known_only=True ignores the prior-filled opposite wall: an unobserved
         wall is discovered by the color sensor instead of guessed, otherwise a
@@ -144,3 +147,37 @@ class Boundary:
                 p = u*(x+front*fx-lateral*fy)+v*(y+front*fy+lateral*fx)
                 remaining = min(remaining, (wall-p)/speed)
         return remaining
+
+    def swing_backoff(self, x, y, heading, radius, rear):
+        """Reverse travel that keeps a circle of `radius` around (x, y) inside
+        every KNOWN wall (unobserved walls are not guessed).
+
+        Returns (need, allowed, blocked): `need` is the back-off along
+        -heading that would clear all known walls; `allowed` caps it so the
+        point `rear` behind the centre stays inside known walls; `blocked` is
+        True when some wall is inside the circle but reversing cannot move
+        away from it (it then does not add to `need`).
+        """
+        a = -heading*pi/180
+        bx, by = -cos(a), -sin(a)
+        need = 0.0
+        allowed = 1e9
+        blocked = False
+        for k,(u,v) in enumerate(self.axes):
+            p = u*x+v*y
+            dp = u*bx+v*by           # change of p per mm of reverse travel
+            lo,hi = self.bounds[k]
+            for wall,sgn in ((hi,1.0),(lo,-1.0)):
+                if wall is None:
+                    continue
+                gap = sgn*(wall-p)    # current distance to this wall
+                rate = -sgn*dp        # gap gained per mm of reverse travel
+                deficit = radius-gap
+                if deficit > 0:
+                    if rate > 0.2:
+                        need = max(need, deficit/rate)
+                    else:
+                        blocked = True
+                if rate < 0:
+                    allowed = min(allowed, max(0.0, (gap-rear)/(-rate)))
+        return need, allowed, blocked

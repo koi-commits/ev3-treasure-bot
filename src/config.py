@@ -245,10 +245,19 @@ SENSOR_OFFSET_MM = 20           # measured 2026-11-17 光斑中心到两轮轴�
 SENSOR_LATERAL_MM = 0           # measured 2026-11-17 光斑中心相对车体中线的横向偏移，右为正（M10）
 OBJ_LEAD_MM = 100               # [TBD] 物体坐进推板后，物体中心到两轮轴线中点的前向距离（M8）
                                 # 待复核：必须满足 OBJ_LEAD_MM + 33.5 <= PLOW_FRONT_MM
-PLOW_FRONT_MM = 143             # measured 2026-11-17 推板最前端到两轮轴线中点的前向距离（M11）
-                                # => 前横梁 CB = 143 - 116 = 27 mm（见 tests/sim.py GEOM）
+PLOW_FRONT_MM = 202             # measured 2026-11-24 推板最前端到两轮轴线中点的前向距离（M11）
+                                # 2026-11-24 推板加长：V 臂尖各接一根 15 孔梁，平行向前伸（旧值 143）。
+                                # V 顶点与触碰挡板没动 => OBJ_LEAD_MM 不变。CB = 27 mm（见 tests/sim.py GEOM）
+PLOW_MOUTH_MM = 103             # measured 2026-11-24 两根平行加长梁之间的内侧净宽（推板通口）
+# 由上面两个实测值推出（不要单独改）：
+PLOW_TIP_HALF_MM = PLOW_MOUTH_MM / 2.0 + 4.0    # 加长梁尖外角的横向半宽（内宽一半 + 半根梁）
+# 原地转时推板尖扫过的圆半径（≈ 209 mm）：原地转前要保证这个圆 + SWING_MARGIN_MM 在白线以内
+PLOW_SWING_R_MM = (PLOW_FRONT_MM ** 2 + PLOW_TIP_HALF_MM ** 2) ** 0.5
 TIRE_RADIUS_MM = 33.5           # measured 2026-11-17 目标物 = 平放 LEGO 轮胎 Ø67 x 33
 TIRE_DIAMETER_MM = 67.0
+# 把轮胎留在推板前面后、下一次原地转之前的倒车量：轮胎近边要离开推板扫圈 10 mm。
+# 加长推板（202 mm）后 BACKOFF_MM=90 不够：轮胎还夹在两根平行梁之间，一转就被甩走。
+TYRE_LEAVE_BACK_MM = PLOW_SWING_R_MM + TIRE_RADIUS_MM + 10.0 - OBJ_LEAD_MM
 SENSOR_HEIGHT_MM = 8.0          # measured 2026-11-17 颜色传感器镜面离地高度（只记录，不参与计算）
 
 # 搜索：随机反弹覆盖（直行到边 -> 退 -> 随机转 100–170°）。不依赖几何标定。
@@ -335,7 +344,7 @@ EDGE_WALK_MS = 300000.0         # 一圈走完的上限（整圈周长约 3.9 m�
 MARKER_SCAN_BACKOFF_MM = 40.0   # 找色标时退到离墙约 60 mm（色标带宽 60 mm，光斑要压上去）
 
 # ---- 车道扫描（boustrophedon，从边上出发、车道垂直于这条边） ----
-LANE_SPACING_MM = 70            # [TBD] 相邻车道间距；推板通口约 105 mm，必须小于通口
+LANE_SPACING_MM = 70            # [TBD] 相邻车道间距；必须 <= PLOW_MOUTH_MM - 20（=83），见 tests/test_config.py
 LANE_MAX_MM = 1236              # 单条车道的上限=场地内部长边（车道必然在这么远内撞到对面白带）
 LANE_MAX_COUNT = 40             # 车道数上限
 LANE_CLEAR_MM = 220.0           # 开第一条车道前，沿车道方向先开这么远离开白带 [TBD]
@@ -387,3 +396,10 @@ def unconfirmed_items():
 
 # Stop the plow front before the estimated white inner boundary.
 GEOFENCE_MARGIN_MM = 20
+# In-place turn swing guard: before rotating near a KNOWN wall, back off along
+# the current heading until the plow-tip swing circle (PLOW_SWING_R_MM) stays
+# this far inside the white line. Back-off is capped so the robot's rear
+# (REAR_CLEAR_MM behind the axle centre) never reaches a known wall either.
+SWING_MARGIN_MM = 20
+SWING_BACKOFF_MAX_MM = 260
+REAR_CLEAR_MM = 100
