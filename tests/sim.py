@@ -14,6 +14,14 @@ DriveBase 约定：turn_rate / angle 正 = 顺时针（右转）。
 import math
 import random
 
+try:
+    import config as _cfg          # src/ 在路径上（harness / MICROPYPATH）
+except ImportError:                # CPython 直接 import sim 时补上 src/
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "src"))
+    import config as _cfg
+
 
 
 def _hypot(a, b):                       # MicroPython 没有 math.hypot
@@ -101,7 +109,7 @@ class SimTimeout(Exception):
 # （CB = 两轮轴线中点到前横梁的前向距离 = 27 mm，实测推板最前端 143 mm）：
 #   V 形臂 (CB+16, ±8) -> (CB+80, ±56)；侧墙 y=±56，x ∈ [CB+16, CB+116]；
 #   触碰挡板 x = CB+38（横跨 y=±25 的一小段，物体坐进推板时压在它上面）。
-# 光斑在 (20, 0)，即 sensor_offset 默认 20（与 src/config.py 的实测值一致）。
+# 光斑（2026-11-24 两个朝下传感器）：左 (67, +32)、右 (67, -32)，默认值直接取 src/config.py。
 # 旧的 apex/plow_depth/plow_half 模型保留（v3=False 时才用），用于对拍历史结果。
 GEOM = dict(
     body_front=45.0, body_back=-80.0, body_half=62.0, wheel_y=52.0,
@@ -124,19 +132,24 @@ GEOM = dict(
 
 class Sim:
     def __init__(self, W=1200, H=900, band=40, outside="floor",
-                 start=(600, 450, 0.0), sensor_offset=20.0, spot_r=4.0,
+                 start=(600, 450, 0.0), sensor_offset=None, spot_r=4.0,
                  noise=0.15, markers=(), objects=(), obstacles=(),
                  accel=750.0, turn_accel=750.0, odo_dist_scale=1.0, odo_turn_scale=1.0,
                  read_cost_ms=1, buttons=(), seed=0, max_ms=400000,
                  geom=None, contact_mu=0.3, load_noise=2.5, coast_decel=900.0, brake_decel=2000.0,
-                 legacy_objects=False, sensor_lat=0.0, battery_mv=7480,
+                 legacy_objects=False, sensor_lat=None, battery_mv=7480,
                  battery_events=(), gyro_drift_dpm=1.0, gyro_noise=0.5,
-                 touch_eps=1.0, odo_angle_noise=0.08):
+                 touch_eps=1.0, odo_angle_noise=0.08, right_sensor=None):
         self.W, self.H, self.band = W, H, band
         self.outside = FLOOR if outside == "floor" else WHITE
         self.x, self.y, self.th = start
-        self.sensor_offset = sensor_offset
-        self.sensor_lat = sensor_lat        # 光斑横向偏移（mm，正 = 车左侧）
+        # 左光斑（巡线用）：前向 sensor_offset、横向 sensor_lat（mm，正 = 车左侧）
+        self.sensor_offset = float(_cfg.SENSOR_OFFSET_MM if sensor_offset is None else sensor_offset)
+        self.sensor_lat = float(_cfg.SENSOR_LATERAL_MM if sensor_lat is None else sensor_lat)
+        # 右光斑：(前向, 横向) 或 None（没有右传感器）。默认取 config。
+        if right_sensor is None:
+            right_sensor = (float(_cfg.SENSOR_RIGHT_OFFSET_MM), float(_cfg.SENSOR_RIGHT_LATERAL_MM))
+        self.right_sensor = right_sensor or None
         self.spot_r = spot_r
         self.noise = noise
         self.markers = list(markers)        # (x0, y0, x1, y1, surface)
@@ -218,13 +231,15 @@ class Sim:
             return WHITE
         return self.outside
 
-    def sensor_pos(self):
+    def sensor_pos(self, which=0):
+        """which = 0 左光斑，1 右光斑。"""
+        f, lat = (self.sensor_offset, self.sensor_lat) if which == 0 else self.right_sensor
         c, s = math.cos(self.th), math.sin(self.th)
-        return (self.x + self.sensor_offset * c - self.sensor_lat * s,
-                self.y + self.sensor_offset * s + self.sensor_lat * c)
+        return (self.x + f * c - lat * s,
+                self.y + f * s + lat * c)
 
-    def _spot(self):
-        sx, sy = self.sensor_pos()
+    def _spot(self, which=0):
+        sx, sy = self.sensor_pos(which)
         r = self.spot_r
         pts = ((0, 0), (r, 0), (-r, 0), (0, r), (0, -r))
         refl = 0.0
@@ -237,9 +252,11 @@ class Sim:
         n = len(pts)
         return refl / n, [c / n for c in rgb]
 
-    def read_sensor(self, kind):
+    def read_sensor(self, kind, which=0):
         self.reads += 1
-        refl, rgb = self._spot()
+        if which == 1 and self.right_sensor is None:
+            raise OSError("no right color sensor in this sim")
+        refl, rgb = self._spot(which)
         g = self.rng.gauss
         if kind == "reflection":
             return max(0.0, round(refl + g(0, self.noise), 1))
@@ -441,6 +458,9 @@ class Sim:
 
         sx, sy = self.sensor_pos()
         self.max_out = max(self.max_out, self._outside_dist(sx, sy))
+        if self.right_sensor is not None:
+            sx, sy = self.sensor_pos(1)
+            self.max_out = max(self.max_out, self._outside_dist(sx, sy))
         self.max_out_center = max(self.max_out_center, self._outside_dist(self.x, self.y))
         c, s_ = math.cos(self.th), math.sin(self.th)
         wy = self.g["wheel_y"]

@@ -162,10 +162,11 @@ class TestDeviceScriptsSmoke(unittest.TestCase):
         from pybricks.parameters import Button
         R = Button.RIGHT
         mk = rect_arena_marker(W, H, "right")
-        # 2026-11-17 实测：光斑只比轴心前伸 20 mm（原注释里的 60 mm 是旧底盘的数）
-        btn = [(100, 200, R, (600, 450, 0)),                 # floor
-               (8000, 8100, R, (W - 10, 300, 0)),            # 光斑(车前 20 mm)落在白边带内
-               (16000, 16100, R, (W - 10, H / 2, 0))]        # 方形红纸压在边界线上
+        # 2026-11-24 实测：左光斑在车前 67 mm、左 32 mm（朝 +x 时光斑 = 车体 + (67, 32)）
+        sx, sy = 67.0, 32.0
+        btn = [(100, 200, R, (600, 450, 0)),                          # floor
+               (8000, 8100, R, (W + 20 - sx, 300 - sy, 0)),          # 光斑落在白边带 (W, W+40) 内
+               (16000, 16100, R, (W - 10 - sx, H / 2 - sy, 0))]      # 光斑在方形红纸上
         s = Sim(seed=2, markers=[mk], buttons=btn, max_ms=120000)
         out = self.run_until_timeout("calibrate_marker", s)
         self.assertIn("RESULT: PASS", out)

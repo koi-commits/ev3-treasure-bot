@@ -85,8 +85,10 @@ class ControllerSafetyTests(unittest.TestCase):
             events.append(("back", mm))
         async def wait(ms):
             self.fail("Must stop in the first sample")
-        env = mission_functions("sweep_lane", "is_boundary", "fence_reached",
-                                tick=tick, straight=straight, wait=wait,
+        async def square_on_line(target):
+            events.append("square")
+        env = mission_functions("sweep_lane", "is_boundary", "is_boundary_left", "fence_reached",
+                                tick=tick, straight=straight, wait=wait, square_on_line=square_on_line,
             ctx=NS(captured=False, carrying=carry, stall_ms=0),
             config=NS(LANE_MAX_MM=1236, LANE_END_MM=150, SWEEP_SPEED=100,
                       BACKOFF_MM=80, AXLE_TRACK_MM=104, STALL_MS=600),
@@ -106,7 +108,7 @@ class ControllerSafetyTests(unittest.TestCase):
     def test_first_white_sample_brakes_then_backs_off_half_track_plus_30(self):
         result, events = self.lane(white=True)
         self.assertEqual(result[0], "end")
-        self.assertEqual(events, ["brake", ("back", -82)])
+        self.assertEqual(events, ["brake", "square", ("back", -82)])
 
     def test_turn_makes_up_insufficient_white_backoff(self):
         events = []
@@ -196,6 +198,35 @@ class BoundaryHeadingFixTests(unittest.TestCase):
     def test_fix_is_off_by_default(self):
         self.assertFalse(harness.fresh_config().HEADING_FIX)
         self.assertEqual(self.run_fix((721.0, 400.0), HEADING_FIX=False)[1], [])
+
+
+class LineSquaringTests(unittest.TestCase):
+    def square(self, d_left, d_right, heading, axis=0.0):
+        cfg = harness.fresh_config()
+        from fsm import wrap180
+        env = mission_functions("square_heading", config=cfg, atan2=math.atan2, pi=math.pi,
+                                wrap180=wrap180)
+        return env["square_heading"](d_left, d_right, heading, axis)
+
+    def test_square_robot_reports_the_wall_normal(self):
+        # Both spots cross together: the robot points exactly along the normal.
+        self.assertAlmostEqual(self.square(30.0, 30.0, 3.0), -3.0, places=6)
+        self.assertAlmostEqual(self.square(30.0, 30.0, 92.0), -2.0, places=6)
+
+    def test_heading_error_sign_and_size(self):
+        # Left spot crosses 64*tan(5 deg) later: the robot is turned 5 deg CCW
+        # of the normal, i.e. DriveBase heading -5 (+ = clockwise).
+        dl = 30.0 + 64.0 * math.tan(math.radians(5.0))
+        self.assertAlmostEqual(self.square(dl, 30.0, 0.0), -5.0, places=6)
+        self.assertAlmostEqual(self.square(30.0, dl, 0.0), 5.0, places=6)
+
+    def test_geometry_matches_sim_spots(self):
+        """The sim's left/right spots are where the formula assumes them to be."""
+        cfg = harness.fresh_config()
+        s = Sim(start=(0, 0, 0))
+        self.assertAlmostEqual(s.sensor_pos(0)[1] - s.sensor_pos(1)[1],
+                               cfg.SENSOR_LATERAL_MM - cfg.SENSOR_RIGHT_LATERAL_MM, places=6)
+        self.assertAlmostEqual(s.sensor_pos(0)[0], cfg.SENSOR_OFFSET_MM, places=6)
 
 
 class EarlyCaptureTests(unittest.TestCase):

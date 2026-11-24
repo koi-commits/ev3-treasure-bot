@@ -26,7 +26,8 @@ from pybricks.parameters import Direction, Port
 # 2026-11-17 硬件 v3（官方 Robot Educator 驱动底座）：端口全部重排，尚未在实物上复核。
 LEFT_MOTOR_PORT = Port.B        # [TBD] 左轮 B（旧底盘为 A）
 RIGHT_MOTOR_PORT = Port.C       # [TBD] 右轮 C（旧底盘为 D）
-COLOR_SENSOR_PORT = Port.S3     # [TBD] 朝下颜色传感器，居中安装（旧底盘为 S1）
+COLOR_SENSOR_PORT = Port.S3     # 左侧朝下颜色传感器（巡线用这一个，边在左侧）
+COLOR_SENSOR_RIGHT_PORT = Port.S4  # 右侧朝下颜色传感器（2026-11-24 新增；缺了 hardware.color_right = None）
 TOUCH_SENSOR_PORT = Port.S1     # [TBD] 触感：V 形推板顶点（口袋深处）
 GYRO_SENSOR_PORT = Port.S2      # 仅 HEADING_SOURCE = "gyro" 时使用（队里目前没有陀螺仪）
 PORTS_CONFIRMED = False         # 换底盘后必须重跑 diag.py / motor_id.py 再改 True
@@ -241,8 +242,12 @@ FINISH_BACK_MM = 150            # 送达后倒车离开（V 形推板倒车 = �
 # 自检（tests/test_config.py 会检查，改参数时别破坏）：
 #   OBJ_LEAD_MM + TIRE_RADIUS_MM <= PLOW_FRONT_MM   （物体坐在推板里，不能伸到推板外面）
 #   SENSOR_OFFSET_MM < PLOW_FRONT_MM                （光斑在推板后方，先看见边再压上去）
-SENSOR_OFFSET_MM = 20           # measured 2026-11-17 光斑中心到两轮轴线中点的前向距离（M1）
-SENSOR_LATERAL_MM = 0           # measured 2026-11-17 光斑中心相对车体中线的横向偏移，右为正（M10）
+SENSOR_OFFSET_MM = 67           # measured 2026-11-24 左光斑中心到两轮轴线中点的前向距离（旧：20 mm 居中）
+SENSOR_LATERAL_MM = 32          # measured 2026-11-24 左光斑相对车体中线的横向偏移，**左为正**
+                                # （mission.ahead() 与仿真都按左为正；旧注释"右为正"是错的）
+SENSOR_RIGHT_OFFSET_MM = 67     # measured 2026-11-24 右光斑前向距离
+SENSOR_RIGHT_LATERAL_MM = -32   # measured 2026-11-24 右光斑横向偏移（左为正 -> 右侧为负）；两光斑基线 64 mm
+USE_RIGHT_SENSOR = True         # False = 只用左传感器（对照 / 右传感器坏了）
 OBJ_LEAD_MM = 100               # [TBD] 物体坐进推板后，物体中心到两轮轴线中点的前向距离（M8）
                                 # 待复核：必须满足 OBJ_LEAD_MM + 33.5 <= PLOW_FRONT_MM
 PLOW_FRONT_MM = 143             # measured 2026-11-17 推板最前端到两轮轴线中点的前向距离（M11）
@@ -318,7 +323,16 @@ GYRO_SETTLE_MS = 2000           # 仅 gyro：起步先静置这么久再 reset �
 # 不参与），在里程计坐标里连线应当平行于
 # 场地轴向；偏差就是两次撞线之间累计的航向误差。只在墙估计可信时用（墙已观测、两点都落在
 # 墙估计 HEADING_FIX_WALL_TOL_MM 以内、轴向不是从航向猜的），单次最多 HEADING_FIX_MAX_DEG。
-HEADING_FIX = False             # 默认关：20 seeds 离线没有测到收益（见 PR），实机有需要再开
+HEADING_FIX = False             # 默认关：20 seeds 离线没有测到收益（见 PR #7），实机有需要再开
+# 两光斑对线（line squaring）：车道朝墙直行，左右光斑先后压线的里程差 -> 车头相对墙法向的角度
+# atan2(d_left - d_right, 基线)。用来修正里程计航向（不需要陀螺）。只在空推板、轴向是拟合出来的、
+# 两个光斑都是白线（红纸内沿不在白线上）时用；单次最多 SQUARE_MAX_FIX_DEG。
+LINE_SQUARING = True
+SQUARE_BACK_MM = 20.0           # 第一次见线后先退这么多，再慢速前进测两个光斑（时间分辨率 -> 1 mm）
+SQUARE_SPEED = 20.0             # mm/s：50 ms 周期 = 1 mm 一次采样（≈ ±1.3° 角度分辨率）
+SQUARE_CREEP_MAX_MM = 60.0      # 慢速前进上限（基线 64 mm × tan 15° ≈ 17 mm + 退回的 20 mm + 余量）
+SQUARE_MAX_FIX_DEG = 15.0
+SQUARE_MIN_FIX_DEG = 0.5        # 小于它当噪声，不改航向
 HEADING_FIX_MAX_DEG = 10.0
 HEADING_FIX_MIN_DEG = 1.0       # 死区：撞线点沿法向只能定位到一个周期的行程（100 mm/s × 50 ms
                                 # = 5 mm），300 mm 跨度上约 ±1°。小于它的偏差当噪声，不修正。

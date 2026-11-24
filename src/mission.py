@@ -39,7 +39,7 @@ from common import aread, battery_check, log, require_gyro_sign, wait_for_button
 from fsm import (CLEAR, CRUISE, ESCAPE, EdgeFollower, LoadMonitor, Odometry, axis_snap,
                  diagonal_choices, heading_of, rotate_about, straight_run_heading, tap_verdict,
                  wrap180)
-from hardware import color, drive, ev3, gyro, left, right, touch
+from hardware import color, color_right, drive, ev3, gyro, left, right, touch
 from sensing import Sensing
 
 from pybricks.parameters import Color
@@ -134,6 +134,9 @@ class Ctx:
         self.boundary_fixes = 0      # 边界航向修正次数
         self.boundary_fix_sum = 0.0  # 修正量绝对值累计（度）
         self.boundary_fix_rejects = 0  # 超过 HEADING_FIX_MAX_DEG 被拒绝的次数
+        self.square_fixes = 0        # 两光斑对线修正次数
+        self.square_fix_sum = 0.0    # 修正量绝对值累计（度）
+        self.square_tries = 0        # 对线测量次数（含没测到 / 被拒绝）
         self.use_touch = False       # 只有 v3 模式每个 tick 读触碰（老模式省读时间）
         self.gyro_sign = 1.0         # require_gyro_sign() 的结果（+1 = 右转时角度增大）
         self.pressed_n = 0           # 触碰挡板连续 pressed 计数（去抖）
@@ -267,6 +270,69 @@ def boundary_heading_fix(point, heading):
         return
 
 
+def square_heading(d_left, d_right, heading, axis):
+    """Odometry heading correction from the two spots' line-crossing distances.
+
+    The spots sit at lateral +L (left) and -L (right). Driving at angle a
+    (math sense, CCW) to the wall normal, the left spot reaches the line after
+    d_left and the right one after d_right with d_left - d_right = 2L tan a.
+    In DriveBase degrees (+ = clockwise) the true heading is normal - a, where
+    the normal is the arena-axis direction (axis + k*90) nearest the heading.
+    Returns the delta to add to the odometry heading.
+    """
+    base = config.SENSOR_LATERAL_MM - config.SENSOR_RIGHT_LATERAL_MM
+    a = atan2(d_left - d_right, base) * 180.0 / pi
+    k = int(((wrap180(heading - axis) + 45.0) // 90.0))
+    normal = wrap180(axis + 90.0 * k)
+    return wrap180(normal - a - heading)
+
+
+async def square_on_line(target):
+    """Line squaring at a lane end: back off a little, creep to the line at
+    SQUARE_SPEED and record where each spot first sees it; correct the
+    odometry heading from the difference. Empty plow only, fitted axis only,
+    both spots on WHITE (the red paper's inner edge is not on the line). No
+    in-place rotation: the lane heading controller does the squaring."""
+    if (not config.LINE_SQUARING or ctx.carrying or ctx.sense.color_right is None
+            or ctx.boundary is None or not ctx.axis_certain):
+        return
+    ctx.square_tries += 1
+    drive.brake()
+    await straight(-config.SQUARE_BACK_MM)
+    d0 = drive.distance()
+    dl = dr = None
+    red = False
+    while True:
+        s = await tick()
+        d = abs(drive.distance() - d0)
+        if dl is None and is_boundary_left(s):
+            dl = d
+            red = red or s.label == FINISH
+        r = s.right
+        if dr is None and r is not None and is_boundary_left(r):
+            dr = d
+            red = red or r.label == FINISH
+        if (dl is not None and dr is not None) or d >= config.SQUARE_CREEP_MAX_MM \
+                or ctx.captured or ctx.stall_ms >= config.STALL_MS:
+            break
+        hold_heading(config.SQUARE_SPEED, target)
+        await wait(PERIOD)
+    drive.brake()
+    if dl is None or dr is None or red:
+        ev("line square: no fix (left {} right {} red {})".format(dl, dr, red))
+        return
+    delta = square_heading(dl, dr, ctx.odom.heading, ctx.boundary.axis)
+    if abs(delta) > config.SQUARE_MAX_FIX_DEG:
+        ev("line square: rejected {:+.1f} deg (dL {:.0f} dR {:.0f})".format(delta, dl, dr))
+        return
+    if abs(delta) < config.SQUARE_MIN_FIX_DEG:
+        return
+    ctx.odom.correct_heading(delta)
+    ctx.square_fixes += 1
+    ctx.square_fix_sum += abs(delta)
+    ev("line square fix {:+.2f} deg (dL {:.0f} dR {:.0f})".format(delta, dl, dr))
+
+
 async def tick():
     """每个循环周期调用一次：读传感器、更新里程计、堵转计时、触碰/色标记录、超时检查。"""
     s = await ctx.sense.read()
@@ -276,12 +342,15 @@ async def tick():
     b = is_boundary(s)
     if b:
         ctx.white_n += 1
-        ctx.boundary_kind = "red" if s.label == FINISH else "white"
+        # The sensor that sees the boundary (left first when both do) gives the hit point.
+        hit = s if is_boundary_left(s) else s.right
+        which = 0 if hit is s else 1
+        ctx.boundary_kind = "red" if hit.label == FINISH else "white"
         ctx.last_white = (o.x, o.y)
         ctx.last_white_ms = ctx.now()
         if not ctx.prev_white:
-            point = ahead(o.x, o.y, o.heading, config.SENSOR_OFFSET_MM, config.SENSOR_LATERAL_MM)
-            if s.white and len(ctx.white_hits) < 24:
+            point = ahead(o.x, o.y, o.heading, SPOTS[which][0], SPOTS[which][1])
+            if hit.white and len(ctx.white_hits) < 24:
                 # 白带前沿的触碰点：它们都躺在同一条墙线上，用来拟合墙的方向
                 ctx.white_hits.append(point)
             ctx.onsets += 1
@@ -321,10 +390,12 @@ async def tick():
         ctx.pressed_n = 0
 
     # ---- 红点（色标）记录：光斑位置 = 车体位姿 + 前向/侧向偏移 ----
-    if s.label == FINISH and not ctx.carrying:
-        p = ahead(o.x, o.y, o.heading, config.SENSOR_OFFSET_MM, config.SENSOR_LATERAL_MM)
-        if len(ctx.marker_pts) < 300 and not near_any(p, ctx.marker_pts, config.MARKER_HIT_DEDUPE_MM):
-            ctx.marker_pts.append(p)
+    if not ctx.carrying:
+        for which, ss in sensor_samples(s):          # either sensor, at its own spot
+            if ss.label == FINISH:
+                p = ahead(o.x, o.y, o.heading, SPOTS[which][0], SPOTS[which][1])
+                if len(ctx.marker_pts) < 300 and not near_any(p, ctx.marker_pts, config.MARKER_HIT_DEDUPE_MM):
+                    ctx.marker_pts.append(p)
 
     # ---- 轨迹（给 edge_probe 的定轴用；滚动保留最近 240 个 tick）----
     if len(ctx.path) < 240:
@@ -338,7 +409,8 @@ async def tick():
         ev("marker", s.marker, "x={:.0f} y={:.0f}".format(o.x, o.y))
         if s.marker == FINISH and ctx.finish_pose is None:
             ctx.finish_pose = (o.x, o.y, o.heading)
-            ctx.finish_pt = ahead(o.x, o.y, o.heading, config.SENSOR_OFFSET_MM)
+            side = s.marker_side if s.marker_side is not None else 0
+            ctx.finish_pt = ahead(o.x, o.y, o.heading, SPOTS[side][0], SPOTS[side][1])
             ev3.speaker.beep(1200, 80)
     ctx.last_marker = s.marker
 
@@ -364,9 +436,25 @@ def dot(p, q):
     return p[0]*q[0] + p[1]*q[1]
 
 
-def is_boundary(s):
-    """White tape or the red paper on top of it: both are the arena edge."""
+def is_boundary_left(s):
+    """Left sensor only: white tape or red paper. The validated edge follower uses this."""
     return s.white or getattr(s, "label", None) == FINISH
+
+
+def is_boundary(s):
+    """White tape or the red paper on top of it, on EITHER sensor: the arena edge."""
+    r = getattr(s, "right", None)
+    return is_boundary_left(s) or (r is not None and is_boundary_left(r))
+
+
+SPOTS = ((config.SENSOR_OFFSET_MM, config.SENSOR_LATERAL_MM),
+         (config.SENSOR_RIGHT_OFFSET_MM, config.SENSOR_RIGHT_LATERAL_MM))
+
+
+def sensor_samples(s):
+    """[(which, sample)] for the sensors present this tick: 0 = left, 1 = right."""
+    r = getattr(s, "right", None)
+    return [(0, s)] if r is None else [(0, s), (1, r)]
 
 
 def marker_seen():
@@ -573,7 +661,7 @@ async def follow(max_ms, until_finish, side=SIDE):
     while t < max_ms:
         s = await tick()
         seg_n += 1
-        if is_boundary(s):
+        if is_boundary_left(s):
             seg_white += 1
 
         if ctx.captured and not ctx.carrying:
@@ -592,7 +680,7 @@ async def follow(max_ms, until_finish, side=SIDE):
             return "finish"
 
         tw = f.twists
-        sp, tr = f.step(t, is_boundary(s))
+        sp, tr = f.step(t, is_boundary_left(s))   # 已验证的巡线：只用左传感器（边在左侧）
         drive.drive(sp, tr)
         if f.twists != tw:
             ctx.edge_trace.append((ctx.odom.x, ctx.odom.y))
@@ -1265,6 +1353,8 @@ async def sweep_lane(target, carry, limit=None, speed=None):
             drive.brake()
             if local:
                 return "white", d
+            if not carry:
+                await square_on_line(target)
             await straight(-max(config.BACKOFF_MM, config.AXLE_TRACK_MM/2+30))
             return ("end" if d < config.LANE_END_MM else "white"), d
         if ctx.stall_ms >= config.STALL_MS:
@@ -1842,6 +1932,8 @@ async def edge_walk(max_ms, step_mm=None, backoff_mm=None, fence=True, want_mark
         await turn_to(face)
         r = await drive_until(config.SWEEP_SPEED, config.EDGE_PROBE_MM, geofence=fence)
         ev("edge walk: face {:.0f} {}".format(face, r))
+        if r == "white" and not (want_marker and marker_seen()):
+            await square_on_line(face)
         if want_marker and marker_seen():
             return "marker"
         if r == "capture":
@@ -2124,7 +2216,7 @@ async def main():
     log(ev3, config.MISSION_MODE)
     battery_check(ev3, config.LOW_BATTERY_MV)
     try:
-        sense = Sensing(color)
+        sense = Sensing(color, color_right=color_right)
     except ValueError as e:
         log(ev3, "config error:", repr(e))
         return
@@ -2173,6 +2265,8 @@ async def main():
           "boundary_fixes", ctx.boundary_fixes,
           "boundary_fix_sum {:.1f}".format(ctx.boundary_fix_sum),
           "boundary_fix_rejects", ctx.boundary_fix_rejects)
+    print("square_fixes", ctx.square_fixes, "square_fix_sum {:.1f}".format(ctx.square_fix_sum),
+          "square_tries", ctx.square_tries)
     print("markers", ctx.markers_seen, "finish_pose", ctx.finish_pose, "target", ctx.target,
           "axis", ctx.axis)
     print("end pose x={:.0f} y={:.0f} h={:.0f}".format(o.x, o.y, o.heading))

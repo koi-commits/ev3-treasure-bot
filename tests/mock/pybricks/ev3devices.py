@@ -34,22 +34,27 @@ class Motor:
 
 class ColorSensor:
     def __init__(self, port):
+        import config
         self.port = port
+        # 右传感器读仿真的右光斑；其余端口读左光斑（巡线用）
+        self.which = 1 if port == getattr(config, "COLOR_SENSOR_RIGHT_PORT", None) else 0
+        if self.which == 1 and getattr(SIM_HOLDER.sim, "right_sensor", None) is None:
+            raise OSError("no device on " + str(port))
 
     def reflection(self):
-        return Value(lambda: SIM_HOLDER.sim.read_sensor("reflection"))
+        return Value(lambda: SIM_HOLDER.sim.read_sensor("reflection", self.which))
 
     def rgb(self):
-        return Value(lambda: SIM_HOLDER.sim.read_sensor("rgb"))
+        return Value(lambda: SIM_HOLDER.sim.read_sensor("rgb", self.which))
 
     def ambient(self):
         return Value(lambda: 2.0)
 
     def color(self):
-        return Value(lambda: SIM_HOLDER.sim.read_sensor("color"))
+        return Value(lambda: SIM_HOLDER.sim.read_sensor("color", self.which))
 
     def hsv(self):
-        return Value(lambda: SIM_HOLDER.sim.read_sensor("hsv"))
+        return Value(lambda: SIM_HOLDER.sim.read_sensor("hsv", self.which))
 
     def detectable_colors(self, colors=None):
         return colors
