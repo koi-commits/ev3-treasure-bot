@@ -23,9 +23,9 @@ class BoundaryTests(unittest.TestCase):
     def test_front_clearance_tracks_pose_and_heading(self):
         b = Boundary(0, 1200, 900)
         b.bounds = [[-500, 700], [-400, 500]]
-        self.assertAlmostEqual(b.clearance(0, 0, 0, 143), 557)
-        self.assertAlmostEqual(b.clearance(100, 0, 0, 143), 457)
-        self.assertAlmostEqual(b.clearance(0, 0, -90, 143), 357)
+        self.assertAlmostEqual(b.clearance(0, 0, 0, 143, 0), 557)
+        self.assertAlmostEqual(b.clearance(100, 0, 0, 143, 0), 457)
+        self.assertAlmostEqual(b.clearance(0, 0, -90, 143, 0), 357)
         # At 45 degrees the outside corner reaches a wall before the centre.
         self.assertLess(b.clearance(0, 0, -45, 143, 56), b.clearance(0, 0, -45, 143, 0))
 
@@ -71,7 +71,7 @@ class BoundaryTests(unittest.TestCase):
         d.step(s)
         self.assertNotIn((30,30), d.swept)  # axle is behind CB
         self.assertIn((40,30), d.swept)
-        self.assertNotIn((40,40), d.swept)  # beyond lateral 56
+        self.assertNotIn((40,40), d.swept)  # beyond lateral PLOW_TIP_HALF_MM (56)
         self.assertEqual(len(d.result()["coverage_grid"].splitlines()), 60)
 
 
@@ -147,6 +147,29 @@ class EarlyCaptureTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertTrue(result["acceptable"], trace)
         self.assertEqual(result["carry_inplace_turns"], 0)
+
+    def recover_env(self, room):
+        moves = []
+        ctx = NS(phase=None, captured=False, pressed_n=0)
+        async def straight(mm):
+            moves.append(mm)
+        async def return_arc(stage, heading):
+            return False
+        env = mission_functions("recover_parked", ctx=ctx,
+            config=NS(LANE_SPACING_MM=70, RECOVER_FENCE_ROOM_MM=30.0, RECOVER_BACKOUT_MAX_MM=200.0),
+            geofence_mm=lambda heading=None: room, straight=straight, return_arc=return_arc,
+            ahead=lambda *a: (0.0, 0.0), ev=lambda *a: None)
+        return env, moves
+
+    def test_recovery_reverses_out_of_the_fence_first(self):
+        env, moves = self.recover_env(-58.0)
+        self.assertFalse(asyncio.run(env["recover_parked"]((0, 0), 0)))
+        self.assertEqual(moves, [-88.0])
+
+    def test_recovery_with_fence_room_does_not_reverse(self):
+        env, moves = self.recover_env(150.0)
+        asyncio.run(env["recover_parked"]((0, 0), 0))
+        self.assertEqual(moves, [])
 
     def test_drop_records_capture_pose_before_reversing(self):
         ctx = NS(odom=NS(x=100, y=20, heading=0), carrying=False,

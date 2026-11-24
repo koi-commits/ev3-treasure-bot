@@ -247,6 +247,10 @@ OBJ_LEAD_MM = 100               # [TBD] 物体坐进推板后，物体中心到�
                                 # 待复核：必须满足 OBJ_LEAD_MM + 33.5 <= PLOW_FRONT_MM
 PLOW_FRONT_MM = 143             # measured 2026-11-17 推板最前端到两轮轴线中点的前向距离（M11）
                                 # => 前横梁 CB = 143 - 116 = 27 mm（见 tests/sim.py GEOM）
+PLOW_MOUTH_MM = 105             # [TBD - design value for the 143 mm plow (walls at +-56 mm centre), measure on robot]
+# 由上面推出（不要单独改）：侧墙中心线的横向半宽 = 通口一半 + 半根梁（3.5 mm）= 56 mm。
+# 推板围栏（geofence）用它当推板前角，仿真 GEOM / 覆盖率统计也用它。
+PLOW_TIP_HALF_MM = PLOW_MOUTH_MM / 2.0 + 3.5
 TIRE_RADIUS_MM = 33.5           # measured 2026-11-17 目标物 = 平放 LEGO 轮胎 Ø67 x 33
 TIRE_DIAMETER_MM = 67.0
 SENSOR_HEIGHT_MM = 8.0          # measured 2026-11-17 颜色传感器镜面离地高度（只记录，不参与计算）
@@ -335,7 +339,7 @@ EDGE_WALK_MS = 300000.0         # 一圈走完的上限（整圈周长约 3.9 m�
 MARKER_SCAN_BACKOFF_MM = 40.0   # 找色标时退到离墙约 60 mm（色标带宽 60 mm，光斑要压上去）
 
 # ---- 车道扫描（boustrophedon，从边上出发、车道垂直于这条边） ----
-LANE_SPACING_MM = 70            # [TBD] 相邻车道间距；推板通口约 105 mm，必须小于通口
+LANE_SPACING_MM = 70            # [TBD] 相邻车道间距；必须小于推板通口 PLOW_MOUTH_MM
 LANE_MAX_MM = 1236              # 单条车道的上限=场地内部长边（车道必然在这么远内撞到对面白带）
 LANE_MAX_COUNT = 40             # 车道数上限
 LANE_CLEAR_MM = 220.0           # 开第一条车道前，沿车道方向先开这么远离开白带 [TBD]
@@ -387,3 +391,7 @@ def unconfirmed_items():
 
 # Stop the plow front before the estimated white inner boundary.
 GEOFENCE_MARGIN_MM = 20
+# Parked-tyre recovery starts by reversing until the plow fence has this much
+# room (the marker probes end at the wall with the fence off); capped.
+RECOVER_FENCE_ROOM_MM = 30.0
+RECOVER_BACKOUT_MAX_MM = 200.0
