@@ -127,7 +127,13 @@ class Ctx:
         self.max_white_run = 0       # 连续见白期间走过的最大距离（mm）
         self.next_trace = 0
         # ---- Mission v3 ----
-        self.use_gyro = False        # main() 里按 config.USE_GYRO / gyro is not None 决定
+        self.use_gyro = False        # main()：HEADING_SOURCE == "gyro" 且 gyro 存在且 v3 模式
+        self.v3 = False              # sweep / capture / full（白边后补足倒车再原地转等 v3 行为）
+        self.axis_certain = False    # 场地轴向来自拟合（不是从航向猜的）-> 才允许边界航向修正
+        self.fix_hits = []           # 上次航向修正以来的撞线点 (point, heading)
+        self.boundary_fixes = 0      # 边界航向修正次数
+        self.boundary_fix_sum = 0.0  # 修正量绝对值累计（度）
+        self.boundary_fix_rejects = 0  # 超过 HEADING_FIX_MAX_DEG 被拒绝的次数
         self.use_touch = False       # 只有 v3 模式每个 tick 读触碰（老模式省读时间）
         self.gyro_sign = 1.0         # require_gyro_sign() 的结果（+1 = 右转时角度增大）
         self.pressed_n = 0           # 触碰挡板连续 pressed 计数（去抖）
@@ -174,8 +180,8 @@ def carry_lost():
 async def read_heading():
     """当前航向（deg，DriveBase 约定：正 = 右转）。
 
-    v3：航向来自陀螺仪（EV3 的 DriveBase 没有 use_gyro，只能自己闭环），
-    符号由 GYRO_POSITIVE_DIRECTION 给出。没有陀螺仪 / 关掉 USE_GYRO 时退回编码器。
+    默认（HEADING_SOURCE = "odometry"）来自 drive.angle()（轮子编码器），不读陀螺。
+    HEADING_SOURCE = "gyro" 且有陀螺时：gyro.angle() × GYRO_POSITIVE_DIRECTION。
     """
     if not ctx.use_gyro:
         return drive.angle()
@@ -210,6 +216,57 @@ def hold_heading(speed, target):
     drive.drive(speed, clamp(config.KP_HEADING * err, -config.MAX_TURN_RATE, config.MAX_TURN_RATE))
 
 
+def boundary_heading_fix(point, heading):
+    """Odometry heading drift correction from two white hits on one known wall.
+
+    Both hits lie on one straight wall. While the heading error e stays
+    constant, every odometry displacement is the true one rotated by e, so the
+    vector between the two hits deviates from the wall direction by exactly e.
+    Applied only while the wall estimate is trustworthy: fitted axis, wall
+    already observed, both hits within HEADING_FIX_WALL_TOL_MM of it, at least
+    HEADING_FIX_MIN_SPAN_MM apart along it. Deviations under HEADING_FIX_MIN_DEG
+    are hit-position noise and ignored; over HEADING_FIX_MAX_DEG are rejected.
+    """
+    b = ctx.boundary
+    if not config.HEADING_FIX or b is None or not ctx.axis_certain \
+            or ctx.phase not in config.HEADING_FIX_PHASES:
+        return
+    k = b.axis_index(heading)
+    u, v = b.axes[k]
+    fx, fy = ahead(0.0, 0.0, heading, 1.0)
+    side = 1 if u*fx + v*fy > 0 else 0
+    wall = b.bounds[k][side]
+    hits = ctx.fix_hits
+    ctx.fix_hits = (hits + [(point, heading)])[-config.HEADING_FIX_LOOKBACK:]
+    tol = config.HEADING_FIX_WALL_TOL_MM
+    if wall is None or abs(u*point[0] + v*point[1] - wall) > tol:
+        return
+    t_now = -v*point[0] + u*point[1]
+    for q, hq in reversed(hits):
+        if b.axis_index(hq) != k:
+            continue
+        gx, gy = ahead(0.0, 0.0, hq, 1.0)
+        if (1 if u*gx + v*gy > 0 else 0) != side or abs(u*q[0] + v*q[1] - wall) > tol:
+            continue
+        if abs(t_now - (-v*q[0] + u*q[1])) < config.HEADING_FIX_MIN_SPAN_MM:
+            continue
+        delta = axis_snap(heading_of(point[0] - q[0], point[1] - q[1]), b.axis)
+        if abs(delta) < config.HEADING_FIX_MIN_DEG:
+            return                          # within hit-position noise: keep the pair, no fix
+        if abs(delta) > config.HEADING_FIX_MAX_DEG:
+            ctx.boundary_fix_rejects += 1
+            ev("boundary heading fix rejected {:+.1f} deg (> {:.0f})".format(
+                delta, config.HEADING_FIX_MAX_DEG))
+            return
+        ctx.odom.correct_heading(delta)
+        ctx.boundary_fixes += 1
+        ctx.boundary_fix_sum += abs(delta)
+        ctx.fix_hits = [(point, heading)]   # pair only hits taken in the new frame
+        ev("boundary heading fix {:+.2f} deg (wall k={} span {:.0f} mm)".format(
+            delta, k, abs(t_now - (-v*q[0] + u*q[1]))))
+        return
+
+
 async def tick():
     """每个循环周期调用一次：读传感器、更新里程计、堵转计时、触碰/色标记录、超时检查。"""
     s = await ctx.sense.read()
@@ -228,6 +285,10 @@ async def tick():
                 # 白带前沿的触碰点：它们都躺在同一条墙线上，用来拟合墙的方向
                 ctx.white_hits.append(point)
             ctx.onsets += 1
+            if ctx.boundary_kind == "white":
+                # Red paper is a boundary for safety, but its inner edge lies up to
+                # ~side/4 inside the white line: not on the straight wall.
+                boundary_heading_fix(point, o.heading)
             ctx.boundary_hits.append((point, o.heading, ctx.boundary_kind))
             if len(ctx.boundary_hits) > 200:
                 ctx.boundary_hits.pop(0)
@@ -348,7 +409,7 @@ async def rotate(deg):
     if ctx.carrying:
         ctx.carry_inplace_turns += 1
         raise AssertionError("in-place turn while carrying")
-    if ctx.use_gyro and ctx.white_backoff is not None:
+    if ctx.v3 and ctx.white_backoff is not None:
         required = config.AXLE_TRACK_MM / 2 + 30
         if ctx.white_backoff < required:
             await straight(-(required - ctx.white_backoff))
@@ -1901,6 +1962,7 @@ async def run_v3(mode):
     fit = wall_fit(min_pts=3, min_span=60.0, pts=ctx.white_hits[-config.EDGE_PROBE_N - 1:])
     if fit is not None:
         ctx.axis = orient_axis(fit[0], face)
+        ctx.axis_certain = True
         ev("axis from probe: {:.0f} rms={:.1f} pts={}".format(ctx.axis, fit[1], fit[2]))
     else:
         # Near a corner the probe can hit the perpendicular wall, so a line fit
@@ -1908,6 +1970,7 @@ async def run_v3(mode):
         axis = fit_axis([p for p, _, _ in ctx.boundary_hits[-12:]], face)
         if axis is not None:
             ctx.axis = axis
+            ctx.axis_certain = True
             ev("axis from clusters: {:.0f} (probe weak, pts={})".format(
                 ctx.axis, len(ctx.white_hits)))
         else:
@@ -2073,7 +2136,8 @@ async def main():
     # v3 的三个模式用陀螺航向 + 触碰捕获；edge_to_finish / survey / calib 是已实机验证的
     # 老路径，保持 drive.angle()：每个 tick 多读两次传感器在「慢读」场景会把任务拖超时。
     v3_mode = config.MISSION_MODE in ("sweep", "capture", "full")
-    if config.USE_GYRO and gyro is not None and v3_mode:
+    ctx.v3 = v3_mode
+    if config.HEADING_SOURCE == "gyro" and gyro is not None and v3_mode:
         ctx.gyro_sign = require_gyro_sign()   # GYRO_POSITIVE_DIRECTION 未实测就报错，不猜
         ctx.use_gyro = True
     if config.USE_TOUCH and touch is not None and v3_mode:
@@ -2084,6 +2148,8 @@ async def main():
         await wait(config.GYRO_SETTLE_MS)
         gyro.reset_angle(0)
         ev("gyro zeroed sign={:+.0f}".format(ctx.gyro_sign))
+    else:
+        ev("heading source: odometry (drive.angle)")
     await odom_update()
 
     try:
@@ -2103,6 +2169,10 @@ async def main():
           "stalls", ctx.stalls, "seek_fail", ctx.seek_fail, "outside_returns", ctx.outs)
     print("suspects", ctx.suspects, "captures", ctx.captures, "lost_in_carry", ctx.lost_objects,
           "heading_fixes", ctx.heading_fixes, "turn_k", ctx.turn_k)
+    print("heading_source", "gyro" if ctx.use_gyro else "odometry",
+          "boundary_fixes", ctx.boundary_fixes,
+          "boundary_fix_sum {:.1f}".format(ctx.boundary_fix_sum),
+          "boundary_fix_rejects", ctx.boundary_fix_rejects)
     print("markers", ctx.markers_seen, "finish_pose", ctx.finish_pose, "target", ctx.target,
           "axis", ctx.axis)
     print("end pose x={:.0f} y={:.0f} h={:.0f}".format(o.x, o.y, o.heading))

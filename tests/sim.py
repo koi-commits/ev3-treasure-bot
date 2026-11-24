@@ -131,7 +131,7 @@ class Sim:
                  geom=None, contact_mu=0.3, load_noise=2.5, coast_decel=900.0, brake_decel=2000.0,
                  legacy_objects=False, sensor_lat=0.0, battery_mv=7480,
                  battery_events=(), gyro_drift_dpm=1.0, gyro_noise=0.5,
-                 touch_eps=1.0):
+                 touch_eps=1.0, odo_angle_noise=0.08):
         self.W, self.H, self.band = W, H, band
         self.outside = FLOOR if outside == "floor" else WHITE
         self.x, self.y, self.th = start
@@ -190,6 +190,13 @@ class Sim:
         self.gyro_drift_dpm = gyro_drift_dpm
         self.gyro_noise = gyro_noise
         self.gyro_deg = 0.0
+        # 编码器航向读数噪声（deg sd，每次读 drive.angle()）。EV3 编码器 1° 轮转分辨率
+        # ≈ 0.27° 航向（56 mm 轮、104 mm 轮距），均匀量化误差 sd ≈ 0.08°。
+        # 不能设 0：完全精确的航向让 hold_heading 一点都不抖，偏心的轮胎就坐不进推板
+        # （2026-11-24 实测：40 seeds 场内 0.0 -> 4/40，0.08 -> 16/40，陀螺默认 -> 19/40）。
+        self.odo_angle_noise = odo_angle_noise
+        # 只在开启时才建：MicroPython 的 _Random 替身会重设全局随机序列
+        self._odo_rng = _Random(seed * 7919 + 101) if odo_angle_noise else None
         # 触碰挡板：由 step() 每步更新（mock 的 TouchSensor.pressed() 读这个属性）
         self.touch_pressed = False
         self.touch_eps = touch_eps
@@ -277,7 +284,10 @@ class Sim:
         return int(self.dist_acc * self.ds)
 
     def odo_angle(self):
-        return self.ang_acc * self.ts
+        a = self.ang_acc * self.ts
+        if self.odo_angle_noise:
+            a += self._odo_rng.gauss(0, self.odo_angle_noise)
+        return a
 
     def motor_angle(self, side):
         return 0
@@ -365,7 +375,7 @@ class Sim:
             return self.cmd_v, self.cmd_w
         m = self.man
         if m["kind"] == "d":
-            done = abs(self.dist_acc - m["start"])
+            done = abs(self.dist_acc - m["start"]) * self.ds   # DriveBase 按编码器计量
             rem = abs(m["target"]) - done
             if rem <= 0.5:
                 self.man = None
@@ -373,7 +383,7 @@ class Sim:
                 return 0.0, 0.0
             sp = min(m["speed"], math.sqrt(2 * self.accel * rem) + 5)
             return math.copysign(sp, m["target"]), 0.0
-        done = abs(self.ang_acc - m["start"])
+        done = abs(self.ang_acc - m["start"]) * self.ts    # 轮距误差 -> 实际转角 = 指令 / ts
         rem = abs(m["target"]) - done
         if rem <= 0.3:
             self.man = None
