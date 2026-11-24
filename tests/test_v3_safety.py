@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 
+import harness
 from harness import press_right, run_script
 from boundary import Boundary, fit_axis
 from diagnostics_v3 import Diagnostics
@@ -113,7 +114,7 @@ class ControllerSafetyTests(unittest.TestCase):
             events.append(("back", mm))
         async def noop(*args):
             pass
-        env = mission_functions("rotate", ctx=NS(carrying=False, use_gyro=True, white_backoff=30),
+        env = mission_functions("rotate", ctx=NS(carrying=False, v3=True, white_backoff=30),
             config=NS(AXLE_TRACK_MM=104), straight=straight, odom_update=noop,
             _settle=noop, drive=NS(turn=lambda d,wait: events.append(("turn",d))))
         asyncio.run(env["rotate"](90))
@@ -133,6 +134,68 @@ class ControllerSafetyTests(unittest.TestCase):
             drive=NS(brake=lambda:None, drive=lambda v,w:self.assertGreater(v,0)))
         asyncio.run(env["gyro_align"](0))
         self.assertEqual(len(seen), 5)
+
+
+class HeadingSourceTests(unittest.TestCase):
+    def test_odometry_heading_never_touches_the_gyro(self):
+        class NoGyro:
+            def angle(self):
+                raise AssertionError("gyro read in odometry mode")
+        env = mission_functions("read_heading", ctx=NS(use_gyro=False),
+                                drive=NS(angle=lambda: 12.5), gyro=NoGyro())
+        self.assertEqual(asyncio.run(env["read_heading"]()), 12.5)
+
+    def test_default_heading_source_is_odometry(self):
+        self.assertEqual(harness.fresh_config().HEADING_SOURCE, "odometry")
+
+
+class BoundaryHeadingFixTests(unittest.TestCase):
+    """Two hits on the known x = 700 wall (robot facing +x, heading 0)."""
+
+    def run_fix(self, second, axis_certain=True, wall=700.0, phase="lane", **cfg):
+        from fsm import axis_snap, heading_of
+        b = Boundary(0.0, 1200, 900)
+        b.bounds = [[-500, wall], [None, None]]
+        odom = NS(heading=0.0, offsets=[])
+        odom.correct_heading = lambda d: odom.offsets.append(d)
+        ctx = NS(boundary=b, axis_certain=axis_certain, phase=phase, fix_hits=[],
+                 odom=odom, boundary_fixes=0, boundary_fix_sum=0.0, boundary_fix_rejects=0)
+        conf = harness.fresh_config(**dict(dict(HEADING_FIX=True), **cfg))
+        events = []
+        env = mission_functions("boundary_heading_fix", "ahead", ctx=ctx, config=conf,
+            axis_snap=axis_snap, heading_of=heading_of, ev=lambda *a: events.append(a),
+            pi=math.pi, cos=math.cos, sin=math.sin)
+        env["boundary_heading_fix"]((700.0, 0.0), 0.0)
+        env["boundary_heading_fix"](second, 0.0)
+        return ctx, odom.offsets
+
+    def test_drift_between_two_hits_on_one_wall_is_corrected(self):
+        # 400 mm along the wall the hit is 21 mm off: the odometry frame turned ~3 deg.
+        from fsm import axis_snap, heading_of
+        ctx, fixes = self.run_fix((721.0, 400.0))
+        self.assertEqual(len(fixes), 1)
+        self.assertAlmostEqual(fixes[0], axis_snap(heading_of(21.0, 400.0), 0.0), places=6)
+        self.assertGreater(abs(fixes[0]), 2.5)
+        self.assertEqual(ctx.boundary_fixes, 1)
+
+    def test_noise_level_deviation_is_ignored(self):
+        ctx, fixes = self.run_fix((704.0, 400.0))      # ~0.6 deg < HEADING_FIX_MIN_DEG
+        self.assertEqual(fixes, [])
+
+    def test_large_deviation_is_rejected(self):
+        ctx, fixes = self.run_fix((640.0, 300.0), HEADING_FIX_WALL_TOL_MM=100.0)   # ~11 deg
+        self.assertEqual(fixes, [])
+        self.assertEqual(ctx.boundary_fix_rejects, 1)
+
+    def test_no_fix_while_the_wall_estimate_is_uncertain(self):
+        self.assertEqual(self.run_fix((721.0, 400.0), axis_certain=False)[1], [])
+        self.assertEqual(self.run_fix((721.0, 400.0), wall=None)[1], [])
+        self.assertEqual(self.run_fix((721.0, 100.0))[1], [])          # span < 300 mm
+        self.assertEqual(self.run_fix((721.0, 400.0), phase="deliver")[1], [])
+
+    def test_fix_is_off_by_default(self):
+        self.assertFalse(harness.fresh_config().HEADING_FIX)
+        self.assertEqual(self.run_fix((721.0, 400.0), HEADING_FIX=False)[1], [])
 
 
 class EarlyCaptureTests(unittest.TestCase):

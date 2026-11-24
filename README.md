@@ -27,7 +27,7 @@ LEGO MINDSTORMS EV3 双电机差速小车 + 1 个朝地颜色传感器 + 陀螺�
 | 右轮电机 | **C** | `RIGHT_MOTOR_PORT` | 未复核 |
 | 颜色传感器（朝下居中） | **S3** | `COLOR_SENSOR_PORT` | 未标定（换底盘后颜色全部失效） |
 | 触感（推板顶点） | **S1** | `TOUCH_SENSOR_PORT` | 未验证 |
-| 陀螺仪 | **S2** | `GYRO_SENSOR_PORT` | 未验证 |
+| 陀螺仪 | — | `GYRO_SENSOR_PORT` | **没有**（2026-11-24）：`HEADING_SOURCE = "odometry"`，航向来自轮子编码器，`AXLE_TRACK_MM` 须标到误差 < 1% |
 
 换底盘让颜色标定与巡线参数全部失效：`config.py` 里相应行都标了
 `[TBD - invalidated by chassis rebuild 2026-11-17]`，旧值只当起点保留。
