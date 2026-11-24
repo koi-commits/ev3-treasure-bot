@@ -400,6 +400,10 @@ GEOFENCE_MARGIN_MM = 20
 # the current heading until the plow-tip swing circle (PLOW_SWING_R_MM) stays
 # this far inside the white line. Back-off is capped so the robot's rear
 # (REAR_CLEAR_MM behind the axle centre) never reaches a known wall either.
+# SWING_GUARD = False: turns that would need it are still counted
+# (swing_backoff_turns), but the robot does not reverse. Off by default:
+# offline it costs about half of the success on the 40-seed matrix (PR notes).
+SWING_GUARD = False
 SWING_MARGIN_MM = 20
 SWING_BACKOFF_MAX_MM = 260
 REAR_CLEAR_MM = 100

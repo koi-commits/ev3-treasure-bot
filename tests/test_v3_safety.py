@@ -132,7 +132,7 @@ class ControllerSafetyTests(unittest.TestCase):
             ctx.odom.x += mm
         async def noop(*args):
             pass
-        cfg = harness.fresh_config()
+        cfg = harness.fresh_config(SWING_GUARD=True)
         env = mission_functions("rotate", "swing_guard", "ahead", ctx=ctx, config=cfg,
             straight=straight, odom_update=noop, _settle=noop, pi=math.pi, cos=math.cos, sin=math.sin,
             drive=NS(turn=lambda d, wait: events.append(("turn", d))))
@@ -147,6 +147,14 @@ class ControllerSafetyTests(unittest.TestCase):
         self.assertEqual(ctx.swing_turns, 1)
         self.assertEqual(ctx.swing_short, 0)
         self.assertGreaterEqual(700 - ctx.odom.x, cfg.PLOW_SWING_R_MM + cfg.SWING_MARGIN_MM - 1e-6)
+
+    def test_guard_off_counts_but_does_not_reverse(self):
+        events = []
+        env, ctx, cfg = self.swing_env(600, 0, events)
+        cfg.SWING_GUARD = False
+        asyncio.run(env["rotate"](90))
+        self.assertEqual(events, [("turn", 90)])
+        self.assertEqual(ctx.swing_turns, 1)
 
     def test_turn_far_from_walls_needs_no_back_off(self):
         events = []

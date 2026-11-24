@@ -362,17 +362,18 @@ async def swing_guard():
         config.REAR_CLEAR_MM)
     wall_back = min(need, allowed, config.SWING_BACKOFF_MAX_MM) if need >= 2.0 else 0.0
     if need >= 2.0:
-        ctx.swing_turns += 1
+        ctx.swing_turns += 1          # counted with the guard off too (would-be back-offs)
         ctx.swing_backoff_mm += wall_back
     if blocked or (need >= 2.0 and wall_back < need - 1.0):
         ctx.swing_short += 1          # circle still crosses a known wall
-    if wall_back >= 2.0:
+    if config.SWING_GUARD and wall_back >= 2.0:
         await straight(-wall_back)
 
 
 def swing_blocked_ahead():
-    """A known wall straight ahead is inside the plow swing circle (+ margin)."""
-    if ctx.boundary is None:
+    """With SWING_GUARD on: a known wall straight ahead is inside the plow swing
+    circle (+ margin), so the guard would reverse along the current leg."""
+    if not config.SWING_GUARD or ctx.boundary is None:
         return False
     o = ctx.odom
     ahead_mm = ctx.boundary.clearance(o.x, o.y, o.heading, 0.0, 0.0, known_only=True)
